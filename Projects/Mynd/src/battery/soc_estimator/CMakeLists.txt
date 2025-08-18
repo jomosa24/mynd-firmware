@@ -1,13 +1,19 @@
 set(API_HEADERS
-    soc_estimator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/soc_estimator.h
 )
 
 set(SOURCES
-    soc_estimator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/soc_estimator.cpp
 )
 
-target_sources(${projectTarget} PRIVATE ${API_HEADERS} ${SOURCES})
+# Add test directory instead of target_sources and target_include_directories if
+# GTEST_BUILD is enabled
+if(GTEST_BUILD)
+    add_subdirectory(tests)
+else()
+    target_sources(${projectTarget} PRIVATE ${API_HEADERS} ${SOURCES})
 
-target_include_directories(${projectTarget} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-)
+    target_include_directories(${projectTarget} PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    )
+endif()

@@ -7,6 +7,3 @@ RUN apt-get update && apt-get -y install cmake ninja-build python3-pip protobuf-
     rm -rf /tmp/gcc-arm-none-eabi.tar.bz2 && \
     ln -s /usr/bin/gcc-12 /usr/bin/gcc && \
     ln -s /usr/bin/g++-12 /usr/bin/g++
-#RUN pip3 install --no-cache-dir --upgrade pip && \
-#    pip3 install --no-cache-dir protobuf && \
-#    pip3 install --no-cache-dir crcmod

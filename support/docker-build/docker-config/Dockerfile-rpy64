@@ -1,0 +1,33 @@
+FROM arm64v8/debian:bookworm-slim 
+
+# Install necessary packages ===> including Python for creating update.bin with prepare_update.py
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates curl tar git \
+    openssh-client openssh-server iputils-ping iproute2 \
+    python3 python3-pip protobuf-compiler python3-protobuf python3-crcmod \
+    sudo udev usbutils coreutils && \
+    rm -rf /var/lib/apt/lists/*
+
+# Disable SSH host key checking for all hosts
+RUN mkdir -p /etc/ssh && \
+    cat <<EOF > /etc/ssh/ssh_config
+Host *
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+EOF
+
+# Install JLink
+RUN mkdir -p /opt/JLink && \
+    curl -L -d "accept_license_agreement=accepted" \
+    "https://www.segger.com/downloads/jlink/JLink_Linux_V798d_arm64.tgz" | \
+    tar -xz -C /opt/JLink --strip-components=1 && \
+    ln -s /opt/JLink/JLinkExe /usr/local/bin/JLinkExe && \
+    ln -s /opt/JLink/JLinkRTTClient /usr/local/bin/JLinkRTTClient && \
+    echo "export PATH=\$PATH:/opt/JLink" > /etc/profile.d/jlink.sh
+
+WORKDIR /workspace
+
+# To enable hotplugging USB devices, start udev inside the container by uncommenting the following line:
+CMD ["/bin/bash", "-c", "/usr/sbin/udevd --daemon && /bin/bash"]

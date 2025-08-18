@@ -94,6 +94,31 @@ function(add_external_binary_dependency filename url)
     endif()
 endfunction()
 
+# macro for fetching gtest
+macro(fetch_gtest_if_needed PROJECT_NAME)
+
+    FetchContent_Declare(
+        googletest_${PROJECT_NAME}
+        URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+    )
+
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest_${PROJECT_NAME})
+
+    include(GoogleTest) # Required for gtest_discover_tests
+
+    if (googletest_${PROJECT_NAME}_POPULATED)
+        target_compile_options(gtest PRIVATE
+            -DGTEST_HAS_PTHREAD=0
+            -DGTEST_HAS_RTTI=0
+            -DGTEST_HAS_EXCEPTIONS=0
+            -D_POSIX_PATH_MAX=100
+            -DGTEST_HAS_POSIX_RE=0
+        )
+    endif()
+endmacro()
+
 function(replace_dashes_with_underscores input_string output_string)
     string(REPLACE "-" "_" tmp_result "${input_string}")
     set(${output_string} ${tmp_result} PARENT_SCOPE)

@@ -1,0 +1,13 @@
+:name: ARM Cortex-M0
+:description: This script creates a Renode instance of an ARM stm32f072 processor
+
+using sysbus
+$name?="stm32f072"
+mach create $name
+
+# Load platform
+machine LoadPlatformDescription $ORIGIN/stm32f072.repl
+
+sysbus Tag <0x40022000, 0x40022004> "FLASH->ACR" 0x0000001 # Mock response to satisfy HAL_Init() and SystemClock_Config() in main.c:44;46, see stm32f0xx_hal_rcc.c:798;805
+
+showAnalyzer usart2

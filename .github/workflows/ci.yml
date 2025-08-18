@@ -1,0 +1,199 @@
+name: Mynd CI
+
+on:
+  push:
+    branches: [ "main", "mynd-gh-actions-ci" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+env:
+  CI_PROJECT_DIR: ${{ github.workspace }}
+
+jobs:
+  build:
+    name: build_${{ matrix.project }}
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/jomosa24/myndfirmware:latest
+      options: --platform linux/amd64
+      credentials:
+        username: ${{ secrets.GHCR_USER }}
+        password: ${{ secrets.GHCR_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: Mynd
+            buildTargets: "mynd-update-firmware-mcu mynd-factory-update-firmware-mcu"
+          - project: MyndBootloader
+            buildTargets: "mynd-bootloader"
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build artifacts
+        env:
+          TFL_PROJECT_NAME: ${{ matrix.project }}
+          TFL_BUILD_TARGETS: ${{ matrix.buildTargets }}
+          TFL_CMAKE_TOOLCHAIN_PREFIX: /usr/local
+          TFL_CMAKE_BUILD_TYPE: Release
+          TFL_PROJECT_DIR: ${{ env.CI_PROJECT_DIR }}
+        run: ${CI_PROJECT_DIR}/support/scripts/cicd/shell/build_artifacts.sh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_${{ matrix.project }}
+          path: ${{ env.CI_PROJECT_DIR }}/build/Projects/${{ matrix.project }}
+          if-no-files-found: error
+      - name: Upload CMake logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmake-logs_${{ matrix.project }}
+          path: |
+            ${{ env.CI_PROJECT_DIR }}/build/CMakeFiles/CMakeOutput.log
+            ${{ env.CI_PROJECT_DIR }}/build/CMakeFiles/CMakeError.log
+          if-no-files-found: ignore
+          retention-days: 1
+
+  func-test:
+    name: func-test_${{ matrix.project }}
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    container:
+      image: ghcr.io/jomosa24/myndfirmware-x86:latest
+      options: --platform linux/amd64
+      credentials:
+        username: ${{ secrets.GHCR_USER }}
+        password: ${{ secrets.GHCR_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: Mynd
+          # Uncomment when bootloader functional tests exist
+          # - project: MyndBootloader
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure and run functional tests
+        env:
+          TFL_PROJECT_NAME: ${{ matrix.project }}
+        run: |
+          mkdir -p ${CI_PROJECT_DIR}/build
+          cd ${CI_PROJECT_DIR}/build
+          cmake -DPROJECT=${TFL_PROJECT_NAME} -DGTEST_BUILD=on .. -G Ninja
+          ninja all
+          ninja test
+
+      - name: Upload gtest reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: func-test_reports_${{ matrix.project }}
+          path: |
+            ${{ env.CI_PROJECT_DIR }}/build/Testing/xml_test_results/*
+          if-no-files-found: warn
+
+  # hil-test:
+  #   # Requires a self-hosted RPi runner with appropriate labels and JLink tools
+  #   name: hil-test_${{ matrix.project }}
+  #   runs-on: [ self-hosted, linux, arm64, rpi ]
+  #   needs: [ func-test ]
+  #   container:
+  #     image: ghcr.io/jomosa24/myndfirmware-rpi:latest
+  #     options: --platform linux/arm64
+  #     credentials:
+  #       username: ${{ secrets.GHCR_USER }}
+  #       password: ${{ secrets.GHCR_TOKEN }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - project: Mynd
+  #           testDir: "${{ github.workspace }}/build/Projects/Mynd/test_application"
+  #           appHexPath: "${{ github.workspace }}/build/Projects/Mynd/mynd.hex"
+  #         # Example bootloader HIL job (disabled by default)
+  #         # - project: MyndBootloader
+  #         #   testDir: "${{ github.workspace }}/build/Projects/MyndBootloader/test_btldr_update"
+  #         #   bootloaderHexPath: "${{ github.workspace }}/build/Projects/MyndBootloader/mynd-bootloader.hex"
+  #   steps:
+  #     - name: Checkout (with submodules)
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+
+  #     - name: Download build artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: build_${{ matrix.project }}
+  #         path: ${{ env.CI_PROJECT_DIR }}/build/Projects/${{ matrix.project }}
+
+  #     - name: Flash application (Mynd)
+  #       if: matrix.project == 'Mynd'
+  #       env:
+  #         TFL_PROJECT_NAME: ${{ matrix.project }}
+  #         TFL_TEST_DIR: ${{ matrix.testDir }}
+  #         TFL_JLINK_CONFIG: "JLinkExe -device STM32F072RB -if SWD -speed 4000 -AutoConnect 1 -NoGui 1 -CommandFile <INSERT_JLINK_CMD_FILE>"
+  #         TFL_MYND_APP_PATH: ${{ matrix.appHexPath }}
+  #       run: |
+  #         echo "Step 1 - Flash ${TFL_PROJECT_NAME} Application"
+  #         ${CI_PROJECT_DIR}/support/scripts/cicd/shell/flash_target_bin.sh \
+  #           "${CI_PROJECT_DIR}" \
+  #           "${TFL_TEST_DIR}" \
+  #           "${TFL_JLINK_CONFIG}" \
+  #           "${TFL_MYND_APP_PATH}"
+
+  #     - name: Validate application (Mynd)
+  #       if: matrix.project == 'Mynd'
+  #       env:
+  #         TFL_PROJECT_NAME: ${{ matrix.project }}
+  #         TFL_TEST_DIR: ${{ matrix.testDir }}
+  #         TFL_JLINK_CONFIG: "JLinkExe -device STM32F072RB -if SWD -speed 4000 -AutoConnect 1 -NoGui 1 -CommandFile <INSERT_JLINK_CMD_FILE>"
+  #       run: |
+  #         echo "Step 2 - Validate Running ${TFL_PROJECT_NAME} Application"
+  #         ${CI_PROJECT_DIR}/support/scripts/cicd/shell/hil_test_app_fault_status.sh \
+  #           "${CI_PROJECT_DIR}" \
+  #           "${TFL_TEST_DIR}" \
+  #           "${TFL_JLINK_CONFIG}"
+
+  #     # Example bootloader steps (disabled by default)
+  #     - name: Bootloader update (MyndBootloader)
+  #       if: matrix.project == 'MyndBootloader'
+  #       env:
+  #         TFL_PROJECT_NAME: ${{ matrix.project }}
+  #         TFL_TEST_DIR: ${{ matrix.testDir }}
+  #         TFL_JLINK_CONFIG: "JLinkExe -device STM32F072RB -if SWD -speed 4000 -AutoConnect 1 -NoGui 1 -CommandFile <INSERT_JLINK_CMD_FILE>"
+  #         TFL_MYND_BOOTLOADER_PATH: ${{ matrix.bootloaderHexPath }}
+  #         TFL_MOUNT_DIR: /media/TEUFEL
+  #         TFL_TEST_BIN_SZ: 23145
+  #         TFL_PROJECT_ID: OA2302
+  #         TFL_MEM_START: 0x08005000
+  #       run: |
+  #         echo "Performing ${TFL_PROJECT_NAME} Bootloader Update"
+  #         echo "Step 1 - Flash Bootloader"
+  #         ${CI_PROJECT_DIR}/support/scripts/cicd/shell/flash_target_bin.sh \
+  #           "${CI_PROJECT_DIR}" \
+  #           "${TFL_TEST_DIR}" \
+  #           "${TFL_JLINK_CONFIG}" \
+  #           "${TFL_MYND_BOOTLOADER_PATH}"
+  #         echo "Step 2 - Perform the Update"
+  #         ${CI_PROJECT_DIR}/support/scripts/cicd/shell/hil_test_mynd_btldr_update.sh \
+  #           "${CI_PROJECT_DIR}" \
+  #           "${TFL_TEST_DIR}" \
+  #           "${TFL_JLINK_CONFIG}" \
+  #           "${TFL_MOUNT_DIR}" \
+  #           "${TFL_TEST_BIN_SZ}" \
+  #           "${TFL_PROJECT_ID}" \
+  #           "${TFL_MEM_START}"
