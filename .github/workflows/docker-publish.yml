@@ -1,4 +1,4 @@
-name: Build and Publish Docker Image for Mynd Build Env
+name: Build, Publish Docker Image for Mynd Build Env
 
 on:
   workflow_dispatch:

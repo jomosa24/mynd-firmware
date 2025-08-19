@@ -38,7 +38,7 @@ jobs:
           TFL_CMAKE_TOOLCHAIN_PREFIX: /usr/local
           TFL_CMAKE_BUILD_TYPE: Release
           TFL_PROJECT_DIR: ${{ github.workspace }}
-        run: ${{ github.workspace }}/support/scripts/cicd/shell/build_artifacts.sh
+        run: support/scripts/cicd/shell/build_artifacts.sh
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
