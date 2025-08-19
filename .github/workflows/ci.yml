@@ -11,23 +11,20 @@ permissions:
   packages: read
   actions: read
 
-env:
-  CI_PROJECT_DIR: ${{ github.workspace }}
-
 jobs:
   build:
     name: build_${{ matrix.project }}
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/teufelaudio/myndfirmware:latest
+      image: ghcr.io/${{ github.repository_owner }}/myndfirmware:latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - project: Mynd
-            buildTargets: "mynd-update-firmware-mcu mynd-factory-update-firmware-mcu"
           - project: MyndBootloader
             buildTargets: "mynd-bootloader"
+          - project: Mynd
+            buildTargets: "mynd-update-firmware-mcu mynd-factory-update-firmware-mcu"
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
@@ -40,14 +37,14 @@ jobs:
           TFL_BUILD_TARGETS: ${{ matrix.buildTargets }}
           TFL_CMAKE_TOOLCHAIN_PREFIX: /usr/local
           TFL_CMAKE_BUILD_TYPE: Release
-          TFL_PROJECT_DIR: ${{ env.CI_PROJECT_DIR }}
-        run: ${CI_PROJECT_DIR}/support/scripts/cicd/shell/build_artifacts.sh
+          TFL_PROJECT_DIR: ${{ github.workspace }}
+        run: ${{ github.workspace }}/support/scripts/cicd/shell/build_artifacts.sh
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build_${{ matrix.project }}
-          path: ${{ env.CI_PROJECT_DIR }}/build/Projects/${{ matrix.project }}
+          path: ${{ github.workspace }}/build/Projects/${{ matrix.project }}
           if-no-files-found: error
       - name: Upload CMake logs (on failure)
         if: failure()
@@ -55,7 +52,7 @@ jobs:
         with:
           name: cmake-logs_${{ matrix.project }}
           path: |
-            ${{ env.CI_PROJECT_DIR }}/build/CMakeFiles/CMakeOutput.log
-            ${{ env.CI_PROJECT_DIR }}/build/CMakeFiles/CMakeError.log
+            ${{ github.workspace }}/build/CMakeFiles/CMakeOutput.log
+            ${{ github.workspace }}/build/CMakeFiles/CMakeError.log
           if-no-files-found: ignore
           retention-days: 1

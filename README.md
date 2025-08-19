@@ -22,3 +22,23 @@ make mynd-update-firmware-mcu
    - `keys`             - Keys to sign firmware update file (Only for tests! They are not used.)
    - `scripts`          - Helper scripts for build and CI/CD
    - `svd`              - Hardware description file - internal registers outline
+
+
+   ## CI Pipelines Usage
+
+   This project uses GitHub Actions for continuous integration (CI) and Docker image management. There are two main workflows:
+
+   1. **Docker Publish Workflow** (`.github/workflows/docker-publish.yml`):  
+      This workflow builds the Docker image (`myndfirmware:latest`) and publishes it to the repository owner's GitHub Container Registry (GHCR).  
+      **You must run this workflow manually** (via the "Actions" tab and selecting "Build and Publish Docker Image for Mynd Build Env") whenever you update the Dockerfile or before running the build workflow for the first time.  
+      This ensures the latest build environment is available for CI.
+
+   2. **Build Workflow** (`.github/workflows/ci.yml`):  
+      This workflow runs automatically on pushes, pull requests, or can be triggered manually.  
+      It pulls the `myndfirmware:latest` image from GHCR to build the firmware and bootloader.  
+      **If the Docker image has not been published yet, the build workflow will fail.**  
+      Always make sure the Docker Publish workflow has completed successfully before running or relying on the build workflow.
+
+   **Summary:**  
+   - Run the Docker Publish workflow first to build and push the Docker image.
+   - Then, run the Build workflow to build and test the firmware using the published image.
