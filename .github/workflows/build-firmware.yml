@@ -16,7 +16,9 @@ jobs:
     name: Build MyndBootloader
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/myndfirmware:latest
+      image: ghcr.io/teufelaudio/myndfirmware:latest
+      # Use this line instead if you built and pushed the container to your own GHCR
+      # image: ghcr.io/${{ github.repository_owner }}/myndfirmware:latest
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
@@ -44,7 +46,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_bootloader
     container:
-      image: ghcr.io/${{ github.repository_owner }}/myndfirmware:latest
+      image: ghcr.io/teufelaudio/myndfirmware:latest
+      # Use this line instead if you built and pushed the container to your own GHCR
+      # image: ghcr.io/${{ github.repository_owner }}/myndfirmware:latest
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4

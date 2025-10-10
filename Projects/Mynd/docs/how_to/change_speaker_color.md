@@ -35,6 +35,6 @@
       - Enter `AU` to read the color to confirm the new color
       - Enter `AX` to deactivate test mode
       - [Read, write color example](./images/rw_color_example.png)
-  12. Perform the USB-C drag & drop update using the **production** firmware binary to enable the CLI
+  12. Perform the USB-C drag & drop update using the **production** firmware binary to return the MYND speaker to normal operation
       - Follow the [How To guide](./perform_drag&drop_update.md)
  
