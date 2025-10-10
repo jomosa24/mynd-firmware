@@ -74,24 +74,14 @@ function(calculate_sha256sum TARGET)
 endfunction()
 
 function(add_external_binary_dependency filename url)
-    # Check if running in GitLab CI
-    if(DEFINED ENV{CI})
-        message(STATUS "Running in GitLab CI environment, credentials required, downloading binary dependency using script.")
-        set(JFROG_DOWNLOAD_SCRIPT "${CMAKE_SOURCE_DIR}/support/scripts/cicd/shell_scripts/jfrog_download_artifact.sh")
-        execute_process(
-            COMMAND sh ${JFROG_DOWNLOAD_SCRIPT} ${filename} ${url} "${CMAKE_SOURCE_DIR}/dl"
-        )
-    else()
-        message(STATUS "Not running in GitLab CI environment, using default method to add external binary dependency.")
-        ExternalProject_Add(${filename}_dl-from-artifactory
-            URL ${url}/${filename}
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND ""
-            INSTALL_COMMAND ""
-            DOWNLOAD_NO_EXTRACT TRUE
-            DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/dl
-        )
-    endif()
+    ExternalProject_Add(${filename}
+        URL ${url}/${filename}
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+        DOWNLOAD_NO_EXTRACT TRUE
+        DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/dl
+    )
 endfunction()
 
 function(replace_dashes_with_underscores input_string output_string)

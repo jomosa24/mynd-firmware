@@ -1,0 +1,83 @@
+name: Build MYND Firmware
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+jobs:
+  build_bootloader:
+    name: Build MyndBootloader
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/myndfirmware:latest
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build artifacts
+        env:
+          TFL_PROJECT_NAME: MyndBootloader
+          TFL_BUILD_TARGETS: mynd-bootloader.hex
+          TFL_CMAKE_TOOLCHAIN_PREFIX: /usr/local
+          TFL_CMAKE_BUILD_TYPE: Release
+          TFL_PROJECT_DIR: ${{ github.workspace }}
+        run: support/scripts/build_artifacts.sh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_MyndBootloader
+          path: ${{ github.workspace }}/build/Projects/MyndBootloader
+          if-no-files-found: error
+
+  build_mynd:
+    name: Build Mynd
+    runs-on: ubuntu-latest
+    needs: build_bootloader
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/myndfirmware:latest
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Use mynd-bootloader.hex from the previous build_bootloader job for
+      # building the complete targets (bootloader + application = complete)
+      - name: Download MyndBootloader artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build_MyndBootloader
+          path: ${{ github.workspace }}/dl
+
+      - name: Build artifacts
+        env:
+          TFL_PROJECT_NAME: Mynd
+          TFL_BUILD_TARGETS: |
+            mynd.hex
+            mynd-factory.hex
+            mynd-complete
+            mynd-factory-complete
+            mynd-update-firmware-mcu
+            mynd-factory-update-firmware-mcu
+          TFL_CMAKE_TOOLCHAIN_PREFIX: /usr/local
+          TFL_CMAKE_BUILD_TYPE: Release
+          TFL_PROJECT_DIR: ${{ github.workspace }}
+        run: support/scripts/build_artifacts.sh
+        continue-on-error: true # Continue building other targets even if one fails
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_Mynd
+          path: ${{ github.workspace }}/build/Projects/Mynd
+          if-no-files-found: error
