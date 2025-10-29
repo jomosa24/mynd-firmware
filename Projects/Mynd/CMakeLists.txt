@@ -287,19 +287,14 @@ set(BOOTLOADER_FILENAME "${PROJECT_NAME}-bootloader-${BOOTLOADER_VERSION}.hex")
 
 replace_dashes_with_underscores(${PROJECT_NAME} _PROJECT_NAME)
 
-add_external_binary_dependency(
-    ${BOOTLOADER_FILENAME}
-    https://repo.bag.software/de.teufel.mcu.firmware-releases/de/teufel/firmware/${PROJECT_NAME}/bootloader
-)
-
 add_custom_command(OUTPUT ${PROJECT_NAME}-complete.hex
     # TODO: add Windows support
     COMMAND hexmerge.py
-    ${CMAKE_SOURCE_DIR}/dl/${BOOTLOADER_FILENAME}:0x08000000:0x08005000
+    ${CMAKE_SOURCE_DIR}/build/Projects/MyndBootloader/${PROJECT_NAME}-bootloader.hex:0x08000000:0x08005000
 #    ${CMAKE_BINARY_DIR}/Projects/MyndBootloader/${PROJECT_NAME}-bootloader.hex:0x08000000:0x08006800
     ${CMAKE_BINARY_DIR}/Projects/Mynd/${PROJECT_NAME}-offset.hex:0x08005000:0x08020000
     -o ${PROJECT_NAME}-complete.hex
-    DEPENDS ${PROJECT_NAME}-offset.hex ${BOOTLOADER_FILENAME}_dl-from-artifactory
+    DEPENDS ${PROJECT_NAME}-offset.hex ${BOOTLOADER_FILENAME}
     COMMENT "Merge hex files: ${PROJECT_NAME}-bootloader.hex and ${PROJECT_NAME}-offset.hex into ${PROJECT_NAME}-complete.hex"
     VERBATIM
 )
@@ -307,14 +302,15 @@ add_custom_command(OUTPUT ${PROJECT_NAME}-complete.hex
 add_custom_command(OUTPUT ${PROJECT_NAME}-factory-complete.hex
     # TODO: add Windows support
     COMMAND hexmerge.py
-    ${CMAKE_SOURCE_DIR}/dl/${BOOTLOADER_FILENAME}:0x08000000:0x08005000
+    ${CMAKE_SOURCE_DIR}/build/Projects/MyndBootloader/${PROJECT_NAME}-bootloader.hex:0x08000000:0x08005000
 #    ${CMAKE_BINARY_DIR}/Projects/MyndBootloader/${PROJECT_NAME}-bootloader.hex:0x08000000:0x08006800
     ${CMAKE_BINARY_DIR}/Projects/Mynd/${PROJECT_NAME}-factory-offset.hex:0x08005000:0x08020000
     -o ${PROJECT_NAME}-factory-complete.hex
-    DEPENDS ${PROJECT_NAME}-factory-offset.hex ${BOOTLOADER_FILENAME}_dl-from-artifactory
+    DEPENDS ${PROJECT_NAME}-factory-offset.hex ${BOOTLOADER_FILENAME}
     COMMENT "Merge hex files: ${PROJECT_NAME}-bootloader.hex and ${PROJECT_NAME}-factory-offset.hex into ${PROJECT_NAME}-factory-complete.hex"
     VERBATIM
 )
 
+add_custom_target(${BOOTLOADER_FILENAME} DEPENDS ${PROJECT_NAME}-bootloader.hex)
 add_custom_target(${PROJECT_NAME}-complete DEPENDS ${PROJECT_NAME}-complete.hex)
 add_custom_target(${PROJECT_NAME}-factory-complete DEPENDS ${PROJECT_NAME}-factory-complete.hex)
