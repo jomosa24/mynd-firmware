@@ -24,21 +24,8 @@ make mynd-update-firmware-mcu
    - `svd`              - Hardware description file - internal registers outline
 
 
-## CI Pipelines Usage
+## Want to easily build and test MYND firmware using GitHub Actions?
+View the [Wiki](https://github.com/teufelaudio/mynd-firmware/wiki) for more details!
 
-There are two main workflows:
-
-1. **Docker Publish Workflow** (`.github/workflows/docker-publish.yml`):  
-  - This workflow builds the Docker image (`myndfirmware:latest`) and publishes it to the repository owner's GitHub Container Registry (GHCR).  
-    - **You must run this workflow manually** whenever you update the Dockerfile or before running the build workflow for the first time.  
-    - This ensures the latest build environment is available for building the Mynd firmware.
-
-2. **Build Workflow** (`.github/workflows/ci.yml`):  
-  - This workflow runs automatically on pushes, pull requests, or can be triggered manually.  
-    - It pulls the `myndfirmware:latest` image from GHCR to build the firmware and bootloader.  
-      - **If the Docker image has not been published yet, the build workflow will fail.**  
-    - Always make sure the Docker Publish workflow has completed successfully before running or relying on the build workflow.
-
-**Summary:**  
-- Run the Docker Publish workflow first to build and push the Docker image.
-- Then, run the Build workflow to build and upload the firmware artifacts.
+## Don't Yet Own a MYND Speaker!?
+Purchase one [here](https://teufel.de/mynd)!
