@@ -4,6 +4,10 @@ PROJECT(mynd ASM C CXX)
 
 include(stm32_gcc)
 
+if(MYND_RPI_MODIFICATION)
+add_compile_definitions(MYND_RPI_MODIFICATION)
+endif()
+
 find_package(CMSIS COMPONENTS STM32F0 REQUIRED QUIET)
 find_package(HAL COMPONENTS RCC CORTEX ADC GPIO UART TIM I2C FLASH DMA LL_USART PWR RTC REQUIRED QUIET)
 
@@ -15,7 +19,9 @@ find_package(TeufelDrivers COMPONENTS aw9523b bq25713 button STM32_vEEPROM tas58
 find_package(TeufelLibraries COMPONENTS app_assert greeting syscalls REQUIRED QUIET)
 
 find_package(FreeRTOS COMPONENTS ARM_CM0 REQUIRED QUIET)
+if(NOT MYND_RPI_MODIFICATION)
 find_package(Actionslink REQUIRED QUIET)
+endif()
 find_package(Logger REQUIRED QUIET)
 find_package(IEngine REQUIRED QUIET)
 
@@ -66,6 +72,7 @@ SET(ALL_SOURCES
     ${PROJECT_SOURCES}
 )
 
+if (NOT MYND_RPI_MODIFICATION)
 file(GLOB PROTO_COMMON_FILES ${TeufelLibsPath}/actionslink/proto/common/*.proto)
 file(GLOB PROTO_FILES ${TeufelLibsPath}/actionslink/proto/eco/*.proto)
 
@@ -87,6 +94,7 @@ configure_file (
     "${TeufelLibsPath}/actionslink/src/version/actionslink_version.h.in"
     "${CMAKE_BINARY_DIR}/Projects/Mynd/actionslink_version.h"
 )
+endif() # NOT MYND_RPI_MODIFICATION
 
 # Base _interface_ target. This is used to propagate the compiler flags and include directories to all targets
 add_library(baseTarget INTERFACE IMPORTED)
@@ -131,9 +139,12 @@ target_link_libraries(baseTarget INTERFACE
 
 target_include_directories(baseTarget INTERFACE
     ${ALL_INCLUDES}
-    ${NANOPB_INCLUDE_DIRS}
     ${CMAKE_BINARY_DIR}/Projects/Mynd     # .proto files generated headers go to bin folder
 )
+
+if (NOT MYND_RPI_MODIFICATION)
+    target_include_directories(baseTarget INTERFACE ${NANOPB_INCLUDE_DIRS})
+endif()
 
 target_compile_definitions(baseTarget INTERFACE ${MYND_COMPILER_FLAGS})
 
@@ -145,10 +156,12 @@ add_executable(${projectTarget} ${ALL_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
 add_subdirectory(src ${projectTarget}_build)
 target_link_libraries(${projectTarget} PRIVATE baseTarget)
 
-target_link_libraries(${projectTarget} PRIVATE
-    Actionslink
-    Actionslink::LogLevelInfo
-)
+if(NOT MYND_RPI_MODIFICATION)
+    target_link_libraries(${projectTarget} PRIVATE
+        Actionslink
+        Actionslink::LogLevelInfo
+    )
+endif()
 
 target_link_libraries(${projectTarget} PRIVATE
     Logger
@@ -174,10 +187,12 @@ target_link_libraries(${projectTarget} PRIVATE baseTarget)
 
 target_compile_definitions(${projectTarget} PRIVATE ${PROD_TEST_COMPILER_FLAGS})
 
-target_link_libraries(${projectTarget} PRIVATE
-    Actionslink
-    Actionslink::LogLevelInfo
-)
+if(NOT MYND_RPI_MODIFICATION)
+    target_link_libraries(${projectTarget} PRIVATE
+        Actionslink
+        Actionslink::LogLevelInfo
+    )
+endif()
 
 target_link_libraries(${projectTarget} PRIVATE
     Logger
@@ -204,10 +219,12 @@ add_executable(${projectTarget} ${ALL_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
 add_subdirectory(src ${projectTarget}_build)
 target_link_libraries(${projectTarget} PRIVATE baseTarget)
 
-target_link_libraries(${projectTarget} PRIVATE
-    Actionslink
-    Actionslink::LogLevelInfo
-)
+if(NOT MYND_RPI_MODIFICATION)
+    target_link_libraries(${projectTarget} PRIVATE
+        Actionslink
+        Actionslink::LogLevelInfo
+    )
+endif()
 
 target_link_libraries(${projectTarget} PRIVATE
     Logger
@@ -235,10 +252,12 @@ add_executable(${projectTarget} ${ALL_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
 add_subdirectory(src ${projectTarget}_build)
 target_link_libraries(${projectTarget} PRIVATE baseTarget)
 
-target_link_libraries(${projectTarget} PRIVATE
-    Actionslink
-    Actionslink::LogLevelOff
-)
+if(NOT MYND_RPI_MODIFICATION)
+    target_link_libraries(${projectTarget} PRIVATE
+        Actionslink
+        Actionslink::LogLevelOff
+    )
+endif()
 
 target_link_libraries(${projectTarget} PRIVATE
     Logger

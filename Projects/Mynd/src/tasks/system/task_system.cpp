@@ -22,6 +22,9 @@
 
 #include "task_audio.h"
 #include "task_bluetooth.h"
+#ifdef MYND_RPI_MODIFICATION
+#include "task_rpi.h"
+#endif
 #include "task_system.h"
 #include "task_priorities.h"
 #include "external/teufel/libs/property/property.h"
@@ -136,10 +139,17 @@ static power_state_fn_t power_state_on(const Tus::PowerState &p, const Ux::Syste
                                                  ACTIONSLINK_SOUND_ICON_PLAYBACK_MODE_PLAY_IMMEDIATELY, false});
             }
 
+#ifndef MYND_RPI_MODIFICATION
             // Tell the BT task to prepare for power off (play power off sound icon, etc.)
             // It should synchronize once the whole sound icon has played
             Teufel::Task::Bluetooth::postMessage(ot_id, set_power_msg);
             SyncPrimitive::await(Tus::Task::Bluetooth, 4000, "played off sound icon");
+#else
+            // Tell the RPi task to prepare for power off (shutdown confirmation, etc.)
+            // It should synchronize once the shutdown is ready
+            Teufel::Task::RpiLink::postMessage(ot_id, set_power_msg);
+            SyncPrimitive::await(Tus::Task::RpiLink, 3000, "shutdown ready");
+#endif // MYND_RPI_MODIFICATION
 
             set_power_msg = p_power_state.setTransition(Tus::PowerState::Off, reason, getDesc(Tus::PowerState::Off));
 
@@ -147,9 +157,11 @@ static power_state_fn_t power_state_on(const Tus::PowerState &p, const Ux::Syste
             Teufel::Task::Audio::postMessage(ot_id, set_power_msg);
             SyncPrimitive::await(Tus::Task::Audio, 3000, "completed power off");
 
+#ifndef MYND_RPI_MODIFICATION
             // Once the amps are off, we can turn off the BT module
             Teufel::Task::Bluetooth::postMessage(ot_id, set_power_msg);
             SyncPrimitive::await(Tus::Task::Bluetooth, 5000, "completed power off");
+#endif // MYND_RPI_MODIFICATION
 
             if (not isProperty(Tus::ChargerStatus::Active))
                 board_link_charger_enable_low_power_mode(true);
@@ -185,6 +197,7 @@ static power_state_fn_t power_state_off(const Tus::PowerState &p, const Ux::Syst
 
             set_power_msg = p_power_state.setTransition(Tus::PowerState::On, reason, getDesc(Tus::PowerState::On));
 
+#ifndef MYND_RPI_MODIFICATION
             Teufel::Task::Bluetooth::postMessage(ot_id, set_power_msg);
             SyncPrimitive::await(Tus::Task::Bluetooth, 4000, "enabled BT");
 
@@ -193,6 +206,10 @@ static power_state_fn_t power_state_off(const Tus::PowerState &p, const Ux::Syst
             // TODO: make it synchronous with BT ActionsReady
             // TODO: keep it until we clarify power on sequence with BT team
             // vTaskDelay(pdMS_TO_TICKS(1000));
+#else
+            Teufel::Task::RpiLink::postMessage(ot_id, set_power_msg);
+            SyncPrimitive::await(Tus::Task::RpiLink, 4000, "enabled RPi");
+#endif // MYND_RPI_MODIFICATION
 
             log_dbg("Assuming I2S active, configuring amps");
             Teufel::Task::Audio::postMessage(ot_id, set_power_msg);
@@ -298,8 +315,13 @@ static const GenericThread::Config<SystemMessage> threadConfig = {
         Teufel::Task::Audio::start();
         SyncPrimitive::await(Tus::Task::Audio, 2000, "started");
 
+#ifndef MYND_RPI_MODIFICATION
         Teufel::Task::Bluetooth::start();
         SyncPrimitive::await(Tus::Task::Bluetooth, 2000, "started");
+#else
+        Teufel::Task::RpiLink::start();
+        SyncPrimitive::await(Tus::Task::RpiLink, 2000, "started");
+#endif // MYND_RPI_MODIFICATION
 
         // If the bootloader wrote the magic # to the RTC->BKP0R reg, then an update was performed and device must power
         // on or If the power supply is already held on that means that the speaker should be powered on because the

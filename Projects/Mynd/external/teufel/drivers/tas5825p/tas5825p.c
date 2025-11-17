@@ -191,7 +191,7 @@ int tas5825p_enable_eq(const tas5825p_handler_t *h, bool enable)
     }
 
     uint8_t data[4] = {0};
-    data[3] = (enable ? 0x00 : 0x01);
+    data[3]         = (enable ? 0x00 : 0x01);
     if (h->i2c_write_fn(h->i2c_device_address, 0x2C, data, sizeof(data)) != 0)
     {
         return -E_TAS5825P_IO;
@@ -231,8 +231,8 @@ int tas5825p_set_gpio_mode(const tas5825p_handler_t *h, tas5825p_gpio_t gpio, ta
         return -E_TAS5825P_IO;
     }
 
-    uint8_t register_address = TAS5825P_REG_GPIO0_SEL + (uint8_t)gpio;
-    return tas5825p_write_register(h, register_address, (uint8_t)mode);
+    uint8_t register_address = TAS5825P_REG_GPIO0_SEL + (uint8_t) gpio;
+    return tas5825p_write_register(h, register_address, (uint8_t) mode);
 }
 
 int tas5825p_set_gpio_output_level(const tas5825p_handler_t *h, tas5825p_gpio_t gpio, bool high)
@@ -242,8 +242,8 @@ int tas5825p_set_gpio_output_level(const tas5825p_handler_t *h, tas5825p_gpio_t 
         return -E_TAS5825P_IO;
     }
 
-    uint8_t bitmask = (1 << (uint8_t)gpio);
-    uint8_t value = (high ? bitmask : 0);
+    uint8_t bitmask = (1 << (uint8_t) gpio);
+    uint8_t value   = (high ? bitmask : 0);
     return tas5825p_modify_register(h, TAS5825P_REG_GPIO_OUT, bitmask, value);
 }
 
@@ -260,17 +260,8 @@ int tas5825p_clear_analog_fault(const tas5825p_handler_t *h)
 int tas5825p_recover_dc_fake_fault(const tas5825p_handler_t *h)
 {
     const uint8_t command_seq[][2] = {
-        {0x00, 0x00},
-        {0x7F, 0x00},
-        {0x7E, 0xFF},
-        {0x7D, 0x11},
-        {0x00, 0x02},
-        {0x16, 0x08},
-        {0x00, 0x00},
-        {0x7F, 0x00},
-        {0x00, 0x00},
-        {0x7E, 0x52},
-        {0x7D, 0x00},
+        {0x00, 0x00}, {0x7F, 0x00}, {0x7E, 0xFF}, {0x7D, 0x11}, {0x00, 0x02}, {0x16, 0x08},
+        {0x00, 0x00}, {0x7F, 0x00}, {0x00, 0x00}, {0x7E, 0x52}, {0x7D, 0x00},
     };
     const uint8_t command_seq_len = sizeof(command_seq) / sizeof(command_seq[0]);
 
@@ -336,4 +327,17 @@ static int set_dsp_memory_to_book_and_page(const tas5825p_handler_t *h, uint8_t 
 
     // Now that we are in the right book, change to the wished page
     return tas5825p_write_register(h, 0x00, page);
+}
+
+int tas5825p_read_fs_mon(const tas5825p_handler_t *h, uint8_t *p_value)
+{
+    if (p_value == NULL)
+    {
+        return -E_TAS5825P_PARAM;
+    }
+    if (set_dsp_memory_to_book_and_page(h, 0x00, 0x00) != 0)
+    {
+        return -E_TAS5825P_IO;
+    }
+    return tas5825p_read_register(h, TAS5825P_REG_FS_MON, p_value);
 }

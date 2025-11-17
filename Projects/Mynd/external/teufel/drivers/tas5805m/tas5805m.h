@@ -41,6 +41,16 @@ typedef struct
     uint8_t                 i2c_device_address;
 } tas5805m_config_t;
 
+typedef struct
+{
+    bool bclk_overrate_or_underrate; // Bit 5
+    bool pll_overrate;               // Bit 4
+    bool pll_locked;                 // Bit 3
+    bool bck_missing;                // Bit 2
+    bool bck_valid;                  // Bit 1
+    bool fs_valid_or_error;          // Bit 0
+} tas5805m_clkdet_status_t;
+
 typedef enum
 {
     TAS5805M_DEVICE_STATE_DEEP_SLEEP,
@@ -143,3 +153,27 @@ int tas5805m_set_volume(const tas5805m_handler_t *h, int8_t volume_db);
  * @return 0 if successful, error code otherwise
  */
 int tas5805m_clear_analog_fault(const tas5805m_handler_t *h);
+
+/**
+ * @brief Read FS_MON register (0x37) raw value.
+ *
+ * @param[in]  h         pointer to handler
+ * @param[out] p_value   pointer to store 8-bit FS_MON value
+ *
+ * @return 0 if successful, error code otherwise
+ *
+ * @details Table 7-19. FS_MON Register Field Descriptions
+ * Bit  Field            Type  Reset  Description
+ * 7-6  RESERVED         R/W   00     This bit is reserved
+ * 5-4  BCLK_RATIO_HIGH  R     00     2 msbs of detected BCK ratio
+ * 3-0  FS               R     0000   These bits indicate the currently detected audio sampling rate.
+ *                                    0000: FS Error
+ *                                    0010: 8KHz
+ *                                    0100: 16KHz
+ *                                    0110: 32KHz
+ *                                    1000: Reserved
+ *                                    1001: 48KHz
+ *                                    1011: 96KHz
+ *                                    Others: Reserved
+ */
+int tas5805m_read_fs_mon(const tas5805m_handler_t *h, uint8_t *p_value);

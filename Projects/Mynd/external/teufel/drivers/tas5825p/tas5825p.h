@@ -194,3 +194,27 @@ int tas5825p_clear_analog_fault(const tas5825p_handler_t *h);
  * @return 0 if successful, error code otherwise
  */
 int tas5825p_recover_dc_fake_fault(const tas5825p_handler_t *h);
+
+/**
+ * @brief Read FS_MON register (0x37) raw value.
+ *
+ * @param[in]  h         pointer to handler
+ * @param[out] p_value   pointer to store 8-bit FS_MON value
+ *
+ * @return 0 if successful, error code otherwise
+ *
+ * @details Table 9-18. FS_MON Register Field Descriptions
+ * Bit  Field            Type  Reset  Description
+ * 7-6  RESERVED         R/W   00     This bit is reserved
+ * 5-4  SCLK_RATIO_HIGH  R     00     2 msbs of detected SCLK ratio
+ * 3-0  FS               R     0000   These bits indicate the currently detected audio sampling rate.
+ *                                    0000: FS Error
+ *                                    0100: 16 KHz
+ *                                    0110: 32 KHz
+ *                                    1000: Reserved
+ *                                    1001: 48 KHz
+ *                                    1011: 96 KHz
+ *                                    1101: 192 KHz
+ *                                    Others: Reserved
+ */
+int tas5825p_read_fs_mon(const tas5825p_handler_t *h, uint8_t *p_value);

@@ -25,6 +25,8 @@ extern "C"
 
     void board_link_amps_enable(bool enable);
 
+    int board_link_amps_set_hi_z(void);
+
     int board_link_amps_setup_woofer(board_link_amps_mode_t mode);
 
     int board_link_amps_setup_tweeter(board_link_amps_mode_t mode);
@@ -97,6 +99,10 @@ extern "C"
 
     bool board_link_amps_woofer_fault_detected(void);
     void board_link_amps_woofer_fault_recover(void);
+
+    int board_link_amps_read_fs_mon(uint8_t *p_woofer_fs, uint8_t *p_tweeter_fs);
+
+    bool board_link_amps_fs_ready(void);
 
 #if defined(__cplusplus)
 }

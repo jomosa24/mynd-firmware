@@ -25,6 +25,9 @@
 #include "external/teufel/libs/GenericThread/GenericThread++.h"
 #include "task_audio.h"
 #include "task_bluetooth.h"
+#ifdef MYND_RPI_MODIFICATION
+#include "task_rpi.h"
+#endif
 #include "task_system.h"
 #include "task_priorities.h"
 #include "tests.h"
@@ -99,6 +102,7 @@ static auto pwr_ac_debouncer = Debouncer<bool, 2000>{true, get_systick, board_ge
 // static auto volume_debouncer = Debouncer<bool, 200>{false, get_systick, board_get_ms_since};
 
 static void read_io_expander_inputs();
+static void setup_amps();
 static void disable_amps();
 
 static Tus::Task                                           ot_id                      = Tus::Task::Audio;
@@ -119,6 +123,7 @@ static struct
     bool ignore_hold_until_stop_pairing           = false;
     bool bypass_mode                              = false;
     bool plug_connected                           = false;
+    bool pending_amp_setup                        = false;
 } s_audio;
 
 static const board_link_usb_pd_controller_callbacks_t usb_callbacks = {
@@ -538,6 +543,14 @@ static const button_handler_config_t button_handler_config = {
             auto mapped_event = Teufel::Core::mapValue(EventMapper, event);
             if (mapped_event.has_value())
             {
+                // Send button event to RPi if enabled
+#ifdef MYND_RPI_MODIFICATION
+                Teufel::Task::RpiLink::postMessage(ot_id,
+                                                  Teufel::Task::RpiLink::ButtonEvent{button_state,
+                                                                                     static_cast<uint8_t>(
+                                                                                         mapped_event.value())});
+#endif // MYND_RPI_MODIFICATION
+                                                                                         
                 auto handler = Teufel::Core::mapValue(EventHandlerMapper, button_state);
 #if defined(INCLUDE_PRODUCTION_TESTS)
                 if (is_key_test_activated())
@@ -610,6 +623,20 @@ static const GenericThread::Config<AudioMessage> threadConfig = {
                 board_link_amps_mute(false);
 
                 Teufel::Task::Bluetooth::postMessage(ot_id, Teufel::Ux::Bluetooth::NotifyAuxConnectionChange {s_is_aux_jack_connected});
+            }
+        }
+
+        if (isProperty(Tus::PowerState::On) && s_audio.pending_amp_setup)
+        {
+            if (board_link_amps_set_hi_z() == 0)
+            {
+                vTaskDelay(pdMS_TO_TICKS(5));
+                if (board_link_amps_fs_ready())
+                {
+                    log_info("I2S clocks detected, performing deferred amp setup");
+                    s_audio.pending_amp_setup = false;
+                    setup_amps();
+                }
             }
         }
 
@@ -760,6 +787,8 @@ static const GenericThread::Config<AudioMessage> threadConfig = {
                             disable_amps();
 
                             s_audio.bypass_mode = false;
+                            s_audio.pending_amp_setup = false;
+
                             break;
                         }
 
@@ -805,16 +834,20 @@ static const GenericThread::Config<AudioMessage> threadConfig = {
                         case Tus::PowerState::On: {
                             // The I2S clocks should be stable by now (provided by BT module, synchronized by the system task)
                             // We should now be able to safely start configuring the amplifiers
-                            board_link_amps_mode_t amp_mode = s_audio.bypass_mode ? AMP_MODE_BYPASS : AMP_MODE_NORMAL;
-                            board_link_amps_setup_woofer(amp_mode);
-                            board_link_amps_setup_tweeter(amp_mode);
-
-                            if (isProperty(Tua::EcoMode{true}))
+#ifdef MYND_RPI_MODIFICATION
+                            if (board_link_amps_fs_ready())
                             {
-#ifndef INCLUDE_PRODUCTION_TESTS
-                                board_link_amps_enable_eco_mode(true);
-#endif
+                                log_info("I2S clocks detected, performing amp setup");
+                                setup_amps();
                             }
+                            else
+                            {
+                                log_info("I2S clocks not yet detected, deferring amp setup");
+                                s_audio.pending_amp_setup = true;
+                            }
+#else
+                            setup_amps();
+#endif // MYND_RPI_MODIFICATION
 
 #ifdef BOARD_CONFIG_HAS_NO_I2C_MODE
                             if (s_audio.no_i2c_mode)
@@ -996,6 +1029,26 @@ static void read_io_expander_inputs() {
     }
 
     button_handler_process(s_button_handler, s_buttons_state);
+}
+
+static void setup_amps()
+{
+    board_link_amps_mode_t amp_mode = s_audio.bypass_mode ? AMP_MODE_BYPASS : AMP_MODE_NORMAL;
+    board_link_amps_setup_woofer(amp_mode);
+    board_link_amps_setup_tweeter(amp_mode);
+
+#ifndef INCLUDE_PRODUCTION_TESTS
+    if (isProperty(Tua::EcoMode{true}))
+    {
+        board_link_amps_enable_eco_mode(true);
+    }
+
+    auto bass   = isProperty(Tua::EcoMode{true}) ? 0 : getProperty<Tua::BassLevel>().value;
+    auto treble = isProperty(Tua::EcoMode{true}) ? 0 : getProperty<Tua::TrebleLevel>().value;
+
+    board_link_amps_set_bass_level(bass);
+    board_link_amps_set_treble_level(treble);
+#endif
 }
 
 static void disable_amps()

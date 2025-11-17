@@ -280,3 +280,16 @@ static int set_dsp_memory_to_book_and_page(const tas5805m_handler_t *h, uint8_t 
     // Now that we are in the right book, change to the wished page
     return tas5805m_write_register(h, 0x00, page);
 }
+
+int tas5805m_read_fs_mon(const tas5805m_handler_t *h, uint8_t *p_value)
+{
+    if (p_value == NULL)
+    {
+        return -E_TAS5805M_PARAM;
+    }
+    if (set_dsp_memory_to_book_and_page(h, 0x00, 0x00) != 0)
+    {
+        return -E_TAS5805M_IO;
+    }
+    return tas5805m_read_register(h, TAS5805M_REG_FS_MON, p_value);
+}

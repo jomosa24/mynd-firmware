@@ -11,3 +11,6 @@ target_include_directories(${projectTarget} PUBLIC
 add_subdirectory(audio)
 add_subdirectory(bluetooth)
 add_subdirectory(system)
+if (MYND_RPI_MODIFICATION)
+    add_subdirectory(rpi)
+endif()
