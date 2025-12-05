@@ -293,7 +293,7 @@ set(fw-rpi-mod-offset "${PROJECT_NAME}-rpi-mod-offset")
 
 set(projectTarget ${fw-rpi-mod-offset})
 set(CMAKE_ENABLE_RPI_MOD ON)
-add_executable(${projectTarget} ${ALL_SOURCES})
+add_executable(${projectTarget} ${ALL_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
 add_subdirectory(src ${projectTarget}_build)
 set(CMAKE_ENABLE_RPI_MOD OFF)
 target_link_libraries(${projectTarget} PRIVATE baseTarget)
@@ -357,7 +357,10 @@ add_custom_target(mynd-rpi-mod-update-firmware-mcu DEPENDS mynd-rpi-mod-offset.b
 ################################################
 ######## Complete target - MYND ##########
 ################################################
-add_subdirectory(${CMAKE_SOURCE_DIR}/Projects/MyndBootloader ${CMAKE_BINARY_DIR}/Projects/MyndBootloader EXCLUDE_FROM_ALL)
+# Skip adding MyndBootloader in CI - it's already added by root CMakeLists.txt
+if(NOT DEFINED ENV{CI})
+    add_subdirectory(${CMAKE_SOURCE_DIR}/Projects/MyndBootloader ${CMAKE_BINARY_DIR}/Projects/MyndBootloader EXCLUDE_FROM_ALL)
+endif()
 
 set(BOOTLOADER_FILENAME "${PROJECT_NAME}-bootloader.hex")
 set(BOOTLOADER_TARGET "mynd-bootloader.hex")

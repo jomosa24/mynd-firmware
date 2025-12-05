@@ -2,7 +2,7 @@ name: Build MYND Firmware
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "mynd-rpi-moode-os"]
   pull_request:
   workflow_dispatch:
 
@@ -37,6 +37,8 @@ jobs:
             mynd-factory-complete
             mynd-update-firmware-mcu
             mynd-factory-update-firmware-mcu
+            mynd-rpi-mod-complete
+            mynd-rpi-mod-update-firmware-mcu
           TFL_CMAKE_TOOLCHAIN_PREFIX: /usr/local
           TFL_CMAKE_BUILD_TYPE: Release
           TFL_PROJECT_DIR: ${{ github.workspace }}
