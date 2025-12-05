@@ -7,6 +7,7 @@ static bool is_bluetooth_gpios_initialized = false;
 
 void board_link_bluetooth_init(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     GPIO_InitTypeDef GPIO_InitStruct;
 
     // Configure BT Vreg control pin
@@ -34,17 +35,22 @@ void board_link_bluetooth_init(void)
     HAL_GPIO_Init(BT_RESET_GPIO_PORT, &GPIO_InitStruct);
 
     is_bluetooth_gpios_initialized = true;
+#endif // MYND_RPI_MODIFICATION
 }
 
 void board_link_bluetooth_set_power(bool on)
 {
+#ifndef MYND_RPI_MODIFICATION
     HAL_GPIO_WritePin(BT_CTRL_VREG_GPIO_PORT, BT_CTRL_VREG_GPIO_PIN, (on) ? GPIO_PIN_SET : GPIO_PIN_RESET);
     HAL_GPIO_WritePin(BT_CTRL_3V3_GPIO_PORT, BT_CTRL_3V3_GPIO_PIN, (on) ? GPIO_PIN_SET : GPIO_PIN_RESET);
     log_info("Bluetooth powered %s", on ? "on" : "off");
+#endif // MYND_RPI_MODIFICATION
 }
 
 void board_link_bluetooth_reset(bool assert)
 {
+#ifndef MYND_RPI_MODIFICATION
     HAL_GPIO_WritePin(BT_RESET_GPIO_PORT, BT_RESET_GPIO_PIN, (assert) ? GPIO_PIN_SET : GPIO_PIN_RESET);
     log_info("Bluetooth reset %s", assert ? "asserted" : "deasserted");
+#endif // MYND_RPI_MODIFICATION
 }

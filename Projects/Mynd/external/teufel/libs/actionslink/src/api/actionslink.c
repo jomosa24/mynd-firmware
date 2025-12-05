@@ -1,4 +1,6 @@
 #include "actionslink.h"
+#include "actionslink_version.h"
+#ifndef MYND_RPI_MODIFICATION
 #include "actionslink_bt_ul.h"
 #include "actionslink_decoders.h"
 #include "actionslink_encoders.h"
@@ -6,8 +8,8 @@
 #include "actionslink_requests.h"
 #include "actionslink_log.h"
 #include "actionslink_utils.h"
-#include "actionslink_version.h"
 #include "common.pb.h"
+#endif // MYND_RPI_MODIFICATION
 
 typedef struct
 {
@@ -20,14 +22,17 @@ typedef struct
 
 static actionslink_driver_t m_actionslink;
 
+#ifndef MYND_RPI_MODIFICATION
 // Helper functions
-static bool        is_driver_ready(void);
-static const char *get_error_desc(ActionsLink_Error_Code error_code);
+static bool                         is_driver_ready(void);
+static const char                  *get_error_desc(ActionsLink_Error_Code error_code);
 static ActionsLink_Eco_Device_Color to_pb_color(actionslink_device_color_t color);
+#endif // MYND_RPI_MODIFICATION
 
 int actionslink_init(const actionslink_config_t *p_config, const actionslink_event_handlers_t *p_event_handlers,
                      const actionslink_request_handlers_t *p_request_handlers)
 {
+#ifndef MYND_RPI_MODIFICATION
     if ((p_config == NULL) || (p_event_handlers == NULL))
     {
         return -1;
@@ -73,11 +78,13 @@ int actionslink_init(const actionslink_config_t *p_config, const actionslink_eve
     m_actionslink.is_initialized   = true;
     m_actionslink.next_sequence_id = 0;
     log_info("driver initialized");
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_deinit(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (m_actionslink.is_initialized == false)
     {
         return -1;
@@ -94,16 +101,20 @@ int actionslink_deinit(void)
     m_actionslink.is_initialized   = false;
     m_actionslink.next_sequence_id = 0;
     log_info("driver deinitialized");
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
+#ifndef MYND_RPI_MODIFICATION
 void actionslink_force_stop(void)
 {
     actionslink_bt_ul_stop();
 }
+#endif // MYND_RPI_MODIFICATION
 
 void actionslink_tick(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (m_actionslink.is_initialized == false)
     {
         log_error("actionslink driver is not initialized");
@@ -113,20 +124,30 @@ void actionslink_tick(void)
     ActionsLink_ToMcu response = ActionsLink_ToMcu_init_zero;
     // Nothing to do with the response, we just need to pass the buffer to the function
     actionslink_bt_ul_rx(&response);
+#endif // MYND_RPI_MODIFICATION
 }
 
 bool actionslink_is_ready(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return actionslink_events_has_received_system_ready();
+#else
+    return true;
+#endif // MYND_RPI_MODIFICATION
 }
 
 bool actionslink_is_busy(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return actionslink_bt_ul_is_busy();
+#else
+    return false;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_get_firmware_version(actionslink_firmware_version_t *p_version)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -149,11 +170,13 @@ int actionslink_get_firmware_version(actionslink_firmware_version_t *p_version)
     p_version->major = response.Payload.response.Response.get_firmware_version.major;
     p_version->minor = response.Payload.response.Response.get_firmware_version.minor;
     p_version->patch = response.Payload.response.Response.get_firmware_version.patch;
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_set_power_state(actionslink_power_state_t power_state)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -187,14 +210,16 @@ int actionslink_set_power_state(actionslink_power_state_t power_state)
         (response.Payload.response.Response.set_power_state.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to set power mode [%s]",
-                        get_error_desc(response.Payload.response.Response.set_power_state.status.code));
+                  get_error_desc(response.Payload.response.Response.set_power_state.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_enter_dfu_mode(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -210,14 +235,16 @@ int actionslink_enter_dfu_mode(void)
         (response.Payload.response.Response.enter_dfu_mode.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to enter dfu mode [%s]",
-                        get_error_desc(response.Payload.response.Response.enter_dfu_mode.status.code));
+                  get_error_desc(response.Payload.response.Response.enter_dfu_mode.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_get_this_device_name(actionslink_buffer_dsc_t *p_buffer_dsc)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -237,17 +264,21 @@ int actionslink_get_this_device_name(actionslink_buffer_dsc_t *p_buffer_dsc)
         return -1;
     }
 
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_get_bt_device_name(uint64_t address, actionslink_buffer_dsc_t *p_buffer_dsc)
 {
+#ifndef MYND_RPI_MODIFICATION
     log_debug("get bt device name not implemented");
     return -1;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_get_bt_mac_address(uint64_t *p_bt_mac_address)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -266,11 +297,13 @@ int actionslink_get_bt_mac_address(uint64_t *p_bt_mac_address)
     }
 
     *p_bt_mac_address = response.Payload.response.Response.get_bt_mac_address.address;
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_get_ble_mac_address(uint64_t *p_ble_mac_address)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -289,11 +322,13 @@ int actionslink_get_ble_mac_address(uint64_t *p_ble_mac_address)
     }
 
     *p_ble_mac_address = response.Payload.response.Response.get_ble_mac_address.address;
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_get_bt_rssi_value(int8_t *p_bt_rssi_val)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -312,17 +347,21 @@ int actionslink_get_bt_rssi_value(int8_t *p_bt_rssi_val)
     }
 
     *p_bt_rssi_val = response.Payload.response.Response.get_bt_rssi_value.rssi;
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
+#ifndef MYND_RPI_MODIFICATION
 int actionslink_get_bt_paired_device_list(actionslink_bt_paired_device_list_t *p_list)
 {
     log_debug("get bt paired device list not implemented");
     return -1;
 }
+#endif // MYND_RPI_MODIFICATION
 
 int actionslink_clear_bt_paired_device_list(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -338,14 +377,16 @@ int actionslink_clear_bt_paired_device_list(void)
         (response.Payload.response.Response.clear_bt_paired_device_list.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to clear paired device list [%s]",
-                        get_error_desc(response.Payload.response.Response.clear_bt_paired_device_list.status.code));
+                  get_error_desc(response.Payload.response.Response.clear_bt_paired_device_list.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_disconnect_all_bt_devices(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -361,12 +402,14 @@ int actionslink_disconnect_all_bt_devices(void)
         (response.Payload.response.Response.disconnect_all_bt_devices.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to disconnect all devices [%s]",
-                        get_error_desc(response.Payload.response.Response.disconnect_all_bt_devices.status.code));
+                  get_error_desc(response.Payload.response.Response.disconnect_all_bt_devices.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
+#ifndef MYND_RPI_MODIFICATION
 static int control_volume(ActionsLink_Audio_VolumeControl_VolumeControlAction action)
 {
     if (!is_driver_ready())
@@ -385,24 +428,34 @@ static int control_volume(ActionsLink_Audio_VolumeControl_VolumeControlAction ac
         (response.Payload.response.Response.set_volume.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to set volume [%s]",
-                        get_error_desc(response.Payload.response.Response.set_volume.status.code));
+                  get_error_desc(response.Payload.response.Response.set_volume.status.code));
         return -1;
     }
     return 0;
 }
+#endif // MYND_RPI_MODIFICATION
 
 int actionslink_increase_volume(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return control_volume(ActionsLink_Audio_VolumeControl_VolumeControlAction_VOLUME_UP);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_decrease_volume(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return control_volume(ActionsLink_Audio_VolumeControl_VolumeControlAction_VOLUME_DOWN);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_set_bt_absolute_avrcp_volume(uint8_t avrcp_volume)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -419,12 +472,14 @@ int actionslink_set_bt_absolute_avrcp_volume(uint8_t avrcp_volume)
         (response.Payload.response.Response.set_volume.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to set absolute avrcp volume [%s]",
-                        get_error_desc(response.Payload.response.Response.set_absolute_avrcp_volume.status.code));
+                  get_error_desc(response.Payload.response.Response.set_absolute_avrcp_volume.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
+#ifndef MYND_RPI_MODIFICATION
 static int send_avrcp_command(ActionsLink_Bluetooth_AvrcpAction_Action action)
 {
     if (!is_driver_ready())
@@ -443,37 +498,59 @@ static int send_avrcp_command(ActionsLink_Bluetooth_AvrcpAction_Action action)
         (response.Payload.response.Response.send_avrcp_action.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to send avrcp action [%s]",
-                        get_error_desc(response.Payload.response.Response.send_avrcp_action.status.code));
+                  get_error_desc(response.Payload.response.Response.send_avrcp_action.status.code));
         return -1;
     }
     return 0;
 }
+#endif // MYND_RPI_MODIFICATION
 
 int actionslink_bt_play_pause(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return send_avrcp_command(ActionsLink_Bluetooth_AvrcpAction_Action_TOGGLE_PLAY_PAUSE);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_bt_play(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return send_avrcp_command(ActionsLink_Bluetooth_AvrcpAction_Action_PLAY);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_bt_pause(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return send_avrcp_command(ActionsLink_Bluetooth_AvrcpAction_Action_PAUSE);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_bt_next_track(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return send_avrcp_command(ActionsLink_Bluetooth_AvrcpAction_Action_NEXT_TRACK);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_bt_previous_track(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return send_avrcp_command(ActionsLink_Bluetooth_AvrcpAction_Action_PREVIOUS_TRACK);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
+#ifndef MYND_RPI_MODIFICATION
 static int set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType pairing_state)
 {
     if (!is_driver_ready())
@@ -492,56 +569,90 @@ static int set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType pair
         (response.Payload.response.Response.set_bt_pairing_state.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to set bt pairing state [%s]",
-                        get_error_desc(response.Payload.response.Response.set_bt_pairing_state.status.code));
+                  get_error_desc(response.Payload.response.Response.set_bt_pairing_state.status.code));
         return -1;
     }
     return 0;
 }
+#endif // MYND_RPI_MODIFICATION
 
 int actionslink_start_bt_pairing(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType_BT_PAIRING);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_start_multichain_pairing(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType_CSB_AUTO);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 #ifdef INCLUDE_TWS_MODE
 int actionslink_start_tws_pairing(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType_TWS_AUTO);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_start_tws_pairing_as_master(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType_TWS_MASTER_PAIRING);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_start_tws_pairing_as_slave(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType_TWS_SLAVE_PAIRING);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 #endif // INCLUDE_TWS_MODE
 
 int actionslink_start_csb_broadcaster(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType_CSB_BROADCASTER);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_start_csb_receiver(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType_CSB_RECEIVER);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_stop_pairing(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return set_pairing_state(ActionsLink_Bluetooth_PairingState_PairingType_IDLE);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_exit_csb_mode(actionslink_csb_master_exit_reason_t reason)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -576,39 +687,43 @@ int actionslink_exit_csb_mode(actionslink_csb_master_exit_reason_t reason)
         (response.Payload.response.Response.exit_csb_mode.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to exit csb mode [%s]",
-                        get_error_desc(response.Payload.response.Response.exit_csb_mode.status.code));
+                  get_error_desc(response.Payload.response.Response.exit_csb_mode.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 #ifdef INCLUDE_TWS_MODE
 int actionslink_exit_tws_mode(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
     log_debug("sending exit tws mode command");
 
-    ActionsLink_FromMcu message                            = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                                  = ActionsLink_FromMcu_request_tag;
-    message.Payload.request.seq                            = m_actionslink.next_sequence_id++;
-    message.Payload.request.which_Request                  = ActionsLink_FromMcuRequest_exit_tws_mode_tag;
+    ActionsLink_FromMcu message           = ActionsLink_FromMcu_init_zero;
+    message.which_Payload                 = ActionsLink_FromMcu_request_tag;
+    message.Payload.request.seq           = m_actionslink.next_sequence_id++;
+    message.Payload.request.which_Request = ActionsLink_FromMcuRequest_exit_tws_mode_tag;
 
     ActionsLink_ToMcu response = ActionsLink_ToMcu_init_zero;
     if ((actionslink_bt_ul_tx_rx(&message, &response) != 0) ||
         (response.Payload.response.Response.exit_tws_mode.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to exit tws mode [%s]",
-                        get_error_desc(response.Payload.response.Response.exit_tws_mode.status.code));
+                  get_error_desc(response.Payload.response.Response.exit_tws_mode.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 #endif // INCLUDE_TWS_MODE
 
 int actionslink_enable_bt_reconnection(bool enable)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -625,14 +740,16 @@ int actionslink_enable_bt_reconnection(bool enable)
         (response.Payload.response.Response.enable_bt_reconnection.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to enable/disable reconnection [%s]",
-                        get_error_desc(response.Payload.response.Response.enable_bt_reconnection.status.code));
+                  get_error_desc(response.Payload.response.Response.enable_bt_reconnection.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_send_aux_connection_notification(bool is_connected)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -650,11 +767,13 @@ int actionslink_send_aux_connection_notification(bool is_connected)
         log_error("failed to send aux connection notification");
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_send_usb_connection_notification(bool is_connected)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -672,11 +791,14 @@ int actionslink_send_usb_connection_notification(bool is_connected)
         log_error("failed to send usb connection notification");
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
+
     return 0;
 }
 
 int actionslink_send_battery_level(uint8_t battery_level)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -694,11 +816,13 @@ int actionslink_send_battery_level(uint8_t battery_level)
         log_error("failed to send battery level");
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_send_charger_status(actionslink_charger_status_t status)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -737,18 +861,20 @@ int actionslink_send_charger_status(actionslink_charger_status_t status)
         return -1;
     }
     return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_battery_friendly_charging_notification(bool status)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
     log_debug("sending battery friendly charging notification: %d", status);
 
-    ActionsLink_FromMcu message                                  = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                                        = ActionsLink_FromMcu_event_tag;
-    message.Payload.event.which_Event                            = ActionsLink_FromMcuEvent_notify_battery_friendly_charging_tag;
+    ActionsLink_FromMcu message       = ActionsLink_FromMcu_init_zero;
+    message.which_Payload             = ActionsLink_FromMcu_event_tag;
+    message.Payload.event.which_Event = ActionsLink_FromMcuEvent_notify_battery_friendly_charging_tag;
     message.Payload.event.Event.notify_battery_friendly_charging = status;
 
     // Nothing to do with the response, we just need to pass the buffer to the function
@@ -758,12 +884,13 @@ int actionslink_send_battery_friendly_charging_notification(bool status)
         log_error("failed to send battery friendly charging notification");
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
-
 }
 
 int actionslink_send_eco_mode_state(bool state)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -781,11 +908,13 @@ int actionslink_send_eco_mode_state(bool state)
         log_error("failed to send eco mode state");
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
 int actionslink_send_color_id(actionslink_device_color_t color)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -803,9 +932,11 @@ int actionslink_send_color_id(actionslink_device_color_t color)
         log_error("failed to send device color");
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
+#ifndef MYND_RPI_MODIFICATION
 static int send_usb_hid_command(ActionsLink_Usb_HidAction_Action action)
 {
     if (!is_driver_ready())
@@ -824,29 +955,43 @@ static int send_usb_hid_command(ActionsLink_Usb_HidAction_Action action)
         (response.Payload.response.Response.send_usb_hid_action.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to send usb hid action [%s]",
-                        get_error_desc(response.Payload.response.Response.send_usb_hid_action.status.code));
+                  get_error_desc(response.Payload.response.Response.send_usb_hid_action.status.code));
         return -1;
     }
     return 0;
 }
+#endif // MYND_RPI_MODIFICATION
 
 int actionslink_usb_play_pause(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return send_usb_hid_command(ActionsLink_Usb_HidAction_Action_PLAY_PAUSE);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_usb_next_track(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return send_usb_hid_command(ActionsLink_Usb_HidAction_Action_NEXT_TRACK);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_usb_previous_track(void)
 {
+#ifndef MYND_RPI_MODIFICATION
     return send_usb_hid_command(ActionsLink_Usb_HidAction_Action_PREVIOUS_TRACK);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_set_audio_source(actionslink_audio_source_t source)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -883,12 +1028,14 @@ int actionslink_set_audio_source(actionslink_audio_source_t source)
         (response.Payload.response.Response.set_audio_source.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to set audio source [%s]",
-                        get_error_desc(response.Payload.response.Response.set_audio_source.status.code));
+                  get_error_desc(response.Payload.response.Response.set_audio_source.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
+#ifndef MYND_RPI_MODIFICATION
 static int get_actionslink_sound_icon_id(actionslink_sound_icon_t sound_icon)
 {
     ActionsLink_Audio_SoundIcon sound_icon_id;
@@ -947,10 +1094,12 @@ static int get_actionslink_sound_icon_id(actionslink_sound_icon_t sound_icon)
     }
     return (int) sound_icon_id;
 }
+#endif // MYND_RPI_MODIFICATION
 
 int actionslink_play_sound_icon(actionslink_sound_icon_t               sound_icon,
                                 actionslink_sound_icon_playback_mode_t playback_mode, bool loop_forever)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -989,12 +1138,14 @@ int actionslink_play_sound_icon(actionslink_sound_icon_t               sound_ico
         (response.Payload.response.Response.play_sound_icon.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to play sound icon [%s]",
-                        get_error_desc(response.Payload.response.Response.play_sound_icon.status.code));
+                  get_error_desc(response.Payload.response.Response.play_sound_icon.status.code));
         return -1;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
 
+#ifndef MYND_RPI_MODIFICATION
 int actionslink_stop_sound_icon(actionslink_sound_icon_t sound_icon)
 {
     if (!is_driver_ready())
@@ -1019,7 +1170,7 @@ int actionslink_stop_sound_icon(actionslink_sound_icon_t sound_icon)
         (response.Payload.response.Response.stop_sound_icon.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to stop sound icon [%s]",
-                        get_error_desc(response.Payload.response.Response.stop_sound_icon.status.code));
+                  get_error_desc(response.Payload.response.Response.stop_sound_icon.status.code));
         return -1;
     }
     return 0;
@@ -1073,16 +1224,15 @@ static ActionsLink_Eco_Device_Color to_pb_color(actionslink_device_color_t color
     }
 }
 
-static int actionslink_send_set_common_response(uint32_t pb_tag, uint8_t sequence_id,
-    actionslink_error_t a_error)
+static int actionslink_send_set_common_response(uint32_t pb_tag, uint8_t sequence_id, actionslink_error_t a_error)
 {
     if (!is_driver_ready())
         return -1;
 
-    ActionsLink_FromMcu message                     = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                           = ActionsLink_FromMcu_response_tag;
-    message.Payload.response.seq                    = sequence_id;
-    message.Payload.response.which_Response         = pb_tag;
+    ActionsLink_FromMcu message             = ActionsLink_FromMcu_init_zero;
+    message.which_Payload                   = ActionsLink_FromMcu_response_tag;
+    message.Payload.response.seq            = sequence_id;
+    message.Payload.response.which_Response = pb_tag;
 
     ActionsLink_Common_Result result = to_pb_result(a_error);
     // TODO: Warning! In order to not duplicate the code we can use _any_ value with type Common.Result.
@@ -1091,96 +1241,139 @@ static int actionslink_send_set_common_response(uint32_t pb_tag, uint8_t sequenc
 
     return actionslink_bt_ul_tx(&message);
 }
+#endif // MYND_RPI_MODIFICATION
 
 int actionslink_send_set_off_timer_response(uint8_t sequence_id, actionslink_error_t result)
 {
+#ifndef MYND_RPI_MODIFICATION
     return actionslink_send_set_common_response(ActionsLink_FromMcuResponse_set_off_timer_tag, sequence_id, result);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_set_brightness_response(uint8_t sequence_id, actionslink_error_t result)
 {
+#ifndef MYND_RPI_MODIFICATION
     return actionslink_send_set_common_response(ActionsLink_FromMcuResponse_set_brightness_tag, sequence_id, result);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_set_bass_response(uint8_t sequence_id, actionslink_error_t result)
 {
+#ifndef MYND_RPI_MODIFICATION
     return actionslink_send_set_common_response(ActionsLink_FromMcuResponse_set_bass_tag, sequence_id, result);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_set_treble_response(uint8_t sequence_id, actionslink_error_t result)
 {
+#ifndef MYND_RPI_MODIFICATION
     return actionslink_send_set_common_response(ActionsLink_FromMcuResponse_set_treble_tag, sequence_id, result);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_set_eco_mode_response(uint8_t sequence_id, actionslink_error_t result)
 {
+#ifndef MYND_RPI_MODIFICATION
     return actionslink_send_set_common_response(ActionsLink_FromMcuResponse_set_eco_mode_tag, sequence_id, result);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_set_sound_icons_response(uint8_t sequence_id, actionslink_error_t result)
 {
+#ifndef MYND_RPI_MODIFICATION
     return actionslink_send_set_common_response(ActionsLink_FromMcuResponse_set_sound_icons_tag, sequence_id, result);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_set_battery_friendly_charging_response(uint8_t sequence_id, actionslink_error_t result)
 {
-    return actionslink_send_set_common_response(ActionsLink_FromMcuResponse_set_battery_friendly_charging_tag, sequence_id, result);
+#ifndef MYND_RPI_MODIFICATION
+    return actionslink_send_set_common_response(ActionsLink_FromMcuResponse_set_battery_friendly_charging_tag,
+                                                sequence_id, result);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
-int actionslink_send_get_mcu_firmware_version_response(uint8_t sequence_id,
-    uint32_t major, uint32_t minor, uint32_t patch, const char *build)
+int actionslink_send_get_mcu_firmware_version_response(uint8_t sequence_id, uint32_t major, uint32_t minor,
+                                                       uint32_t patch, const char *build)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
-    ActionsLink_FromMcu message                         = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                               = ActionsLink_FromMcu_response_tag;
-    message.Payload.response.seq                        = sequence_id;
-    message.Payload.response.which_Response             = ActionsLink_FromMcuResponse_get_mcu_firmware_version_tag;
-    message.Payload.response.Response.get_mcu_firmware_version.major = major;
-    message.Payload.response.Response.get_mcu_firmware_version.minor = minor;
-    message.Payload.response.Response.get_mcu_firmware_version.patch = patch;
+    ActionsLink_FromMcu message             = ActionsLink_FromMcu_init_zero;
+    message.which_Payload                   = ActionsLink_FromMcu_response_tag;
+    message.Payload.response.seq            = sequence_id;
+    message.Payload.response.which_Response = ActionsLink_FromMcuResponse_get_mcu_firmware_version_tag;
+    message.Payload.response.Response.get_mcu_firmware_version.major              = major;
+    message.Payload.response.Response.get_mcu_firmware_version.minor              = minor;
+    message.Payload.response.Response.get_mcu_firmware_version.patch              = patch;
     message.Payload.response.Response.get_mcu_firmware_version.build.funcs.encode = &actionslink_encode_string;
-    message.Payload.response.Response.get_mcu_firmware_version.build.arg = (void*) build;
+    message.Payload.response.Response.get_mcu_firmware_version.build.arg          = (void *) build;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_pdcontroller_firmware_version_response(uint8_t sequence_id, uint32_t major, uint32_t minor)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
-    ActionsLink_FromMcu message                         = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                               = ActionsLink_FromMcu_response_tag;
-    message.Payload.response.seq                        = sequence_id;
-    message.Payload.response.which_Response             = ActionsLink_FromMcuResponse_get_pdcontroller_firmware_version_tag;
-    message.Payload.response.Response.get_pdcontroller_firmware_version.major = major;
-    message.Payload.response.Response.get_pdcontroller_firmware_version.minor = minor;
+    ActionsLink_FromMcu message             = ActionsLink_FromMcu_init_zero;
+    message.which_Payload                   = ActionsLink_FromMcu_response_tag;
+    message.Payload.response.seq            = sequence_id;
+    message.Payload.response.which_Response = ActionsLink_FromMcuResponse_get_pdcontroller_firmware_version_tag;
+    message.Payload.response.Response.get_pdcontroller_firmware_version.major     = major;
+    message.Payload.response.Response.get_pdcontroller_firmware_version.minor     = minor;
     message.Payload.response.Response.get_mcu_firmware_version.build.funcs.encode = &actionslink_encode_string;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 #ifdef ActionsLink_FromMcuResponse_get_serial_number_tag
 int actionslink_send_get_serial_number_response(uint8_t sequence_id, const char *serial_number)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
-    ActionsLink_FromMcu message                         = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                               = ActionsLink_FromMcu_response_tag;
-    message.Payload.response.seq                        = sequence_id;
-    message.Payload.response.which_Response             = ActionsLink_FromMcuResponse_get_serial_number_tag;
+    ActionsLink_FromMcu message             = ActionsLink_FromMcu_init_zero;
+    message.which_Payload                   = ActionsLink_FromMcu_response_tag;
+    message.Payload.response.seq            = sequence_id;
+    message.Payload.response.which_Response = ActionsLink_FromMcuResponse_get_serial_number_tag;
     message.Payload.response.Response.get_serial_number.funcs.encode = &actionslink_encode_string;
-    message.Payload.response.Response.get_serial_number.arg = (void*) serial_number;
+    message.Payload.response.Response.get_serial_number.arg          = (void *) serial_number;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
-#endif
+#endif // ActionsLink_FromMcuResponse_get_serial_number_tag
 
 int actionslink_send_get_color_response(uint8_t sequence_id, actionslink_device_color_t color)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -1191,27 +1384,34 @@ int actionslink_send_get_color_response(uint8_t sequence_id, actionslink_device_
     message.Payload.response.Response.get_color = to_pb_color(color);
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_off_timer_response(uint8_t sequence_id, bool is_enabled, uint32_t value)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
-    ActionsLink_FromMcu message                           = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                                 = ActionsLink_FromMcu_response_tag;
-    message.Payload.response.seq                          = sequence_id;
-    message.Payload.response.which_Response               = ActionsLink_FromMcuResponse_get_off_timer_tag;
-    message.Payload.response.Response.get_off_timer.state = is_enabled ?
-                                    ActionsLink_System_OffTimer_State_ENABLED :
-                                    ActionsLink_System_OffTimer_State_DISABLED;
+    ActionsLink_FromMcu message             = ActionsLink_FromMcu_init_zero;
+    message.which_Payload                   = ActionsLink_FromMcu_response_tag;
+    message.Payload.response.seq            = sequence_id;
+    message.Payload.response.which_Response = ActionsLink_FromMcuResponse_get_off_timer_tag;
+    message.Payload.response.Response.get_off_timer.state =
+        is_enabled ? ActionsLink_System_OffTimer_State_ENABLED : ActionsLink_System_OffTimer_State_DISABLED;
     message.Payload.response.Response.get_off_timer.minutes = value;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_brightness_response(uint8_t sequence_id, uint32_t value)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -1222,10 +1422,14 @@ int actionslink_send_get_brightness_response(uint8_t sequence_id, uint32_t value
     message.Payload.response.Response.get_brightness = value;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_bass_response(uint8_t sequence_id, int8_t value)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -1236,10 +1440,14 @@ int actionslink_send_get_bass_response(uint8_t sequence_id, int8_t value)
     message.Payload.response.Response.get_bass.value = value;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_treble_response(uint8_t sequence_id, int8_t value)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -1250,10 +1458,14 @@ int actionslink_send_get_treble_response(uint8_t sequence_id, int8_t value)
     message.Payload.response.Response.get_treble.value = value;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_eco_mode_response(uint8_t sequence_id, bool is_enabled)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -1264,10 +1476,14 @@ int actionslink_send_get_eco_mode_response(uint8_t sequence_id, bool is_enabled)
     message.Payload.response.Response.get_eco_mode = is_enabled;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_sound_icons_response(uint8_t sequence_id, bool is_enabled)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -1278,24 +1494,32 @@ int actionslink_send_get_sound_icons_response(uint8_t sequence_id, bool is_enabl
     message.Payload.response.Response.get_sound_icons = is_enabled;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_battery_friendly_charging_response(uint8_t sequence_id, bool is_enabled)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
-    ActionsLink_FromMcu message                                     = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                                           = ActionsLink_FromMcu_response_tag;
-    message.Payload.response.seq                                    = sequence_id;
-    message.Payload.response.which_Response                         = ActionsLink_FromMcuResponse_get_battery_friendly_charging_tag;
+    ActionsLink_FromMcu message             = ActionsLink_FromMcu_init_zero;
+    message.which_Payload                   = ActionsLink_FromMcu_response_tag;
+    message.Payload.response.seq            = sequence_id;
+    message.Payload.response.which_Response = ActionsLink_FromMcuResponse_get_battery_friendly_charging_tag;
     message.Payload.response.Response.get_battery_friendly_charging = is_enabled;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_battery_capacity_response(uint8_t sequence_id, uint32_t value)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
@@ -1306,20 +1530,27 @@ int actionslink_send_get_battery_capacity_response(uint8_t sequence_id, uint32_t
     message.Payload.response.Response.get_battery_capacity = value;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 int actionslink_send_get_battery_max_capacity_response(uint8_t sequence_id, uint32_t value)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -1;
 
-    ActionsLink_FromMcu message                                = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                                      = ActionsLink_FromMcu_response_tag;
-    message.Payload.response.seq                               = sequence_id;
-    message.Payload.response.which_Response                    = ActionsLink_FromMcuResponse_get_battery_max_capacity_tag;
+    ActionsLink_FromMcu message             = ActionsLink_FromMcu_init_zero;
+    message.which_Payload                   = ActionsLink_FromMcu_response_tag;
+    message.Payload.response.seq            = sequence_id;
+    message.Payload.response.which_Response = ActionsLink_FromMcuResponse_get_battery_max_capacity_tag;
     message.Payload.response.Response.get_battery_max_capacity = value;
 
     return actionslink_bt_ul_tx(&message);
+#else
+    return 0;
+#endif // MYND_RPI_MODIFICATION
 }
 
 const char *actionslink_get_version()
@@ -1330,16 +1561,17 @@ const char *actionslink_get_version()
 #if defined(ActionsLink_FromMcuRequest_write_key_value_tag)
 int actionslink_write_key_value(uint32_t key, uint32_t value)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -2;
 
     log_debug("sending kv element write request: key=%d value=%d", key, value);
 
-    ActionsLink_FromMcu message           = ActionsLink_FromMcu_init_zero;
-    message.which_Payload                 = ActionsLink_FromMcu_request_tag;
-    message.Payload.request.seq           = m_actionslink.next_sequence_id++;
-    message.Payload.request.which_Request = ActionsLink_FromMcuRequest_write_key_value_tag;
-    message.Payload.request.Request.write_key_value.el.key = key;
+    ActionsLink_FromMcu message                              = ActionsLink_FromMcu_init_zero;
+    message.which_Payload                                    = ActionsLink_FromMcu_request_tag;
+    message.Payload.request.seq                              = m_actionslink.next_sequence_id++;
+    message.Payload.request.which_Request                    = ActionsLink_FromMcuRequest_write_key_value_tag;
+    message.Payload.request.Request.write_key_value.el.key   = key;
     message.Payload.request.Request.write_key_value.el.value = value;
 
     ActionsLink_ToMcu response = ActionsLink_ToMcu_init_zero;
@@ -1347,16 +1579,18 @@ int actionslink_write_key_value(uint32_t key, uint32_t value)
         (response.Payload.response.Response.write_key_value.status.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to write kv element [%s]",
-                        get_error_desc(response.Payload.response.Response.write_key_value.status.code));
+                  get_error_desc(response.Payload.response.Response.write_key_value.status.code));
         return -2;
     }
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
-#endif
+#endif // ActionsLink_FromMcuRequest_write_key_value_tag
 
 #if defined(ActionsLink_FromMcuRequest_read_key_value_tag)
 int actionslink_read_key_value(uint32_t key, uint32_t *p_value)
 {
+#ifndef MYND_RPI_MODIFICATION
     if (!is_driver_ready())
         return -2;
 
@@ -1367,25 +1601,27 @@ int actionslink_read_key_value(uint32_t key, uint32_t *p_value)
     message.Payload.request.seq           = m_actionslink.next_sequence_id++;
     message.Payload.request.which_Request = ActionsLink_FromMcuRequest_read_key_value_tag;
 
-    ActionsLink_ToMcu response       = ActionsLink_ToMcu_init_zero;
+    ActionsLink_ToMcu response                         = ActionsLink_ToMcu_init_zero;
     message.Payload.request.Request.read_key_value.key = key;
     if ((actionslink_bt_ul_tx_rx(&message, &response) != 0) ||
         (response.Payload.response.Response.read_key_value.Result.error.code != ActionsLink_Error_Code_Success))
     {
         log_error("failed to read kv element [%s]",
-                        get_error_desc(response.Payload.response.Response.read_key_value.Result.error.code));
-        if (response.Payload.response.Response.read_key_value.Result.error.code == ActionsLink_Error_Code_ResourceUnavailable)
+                  get_error_desc(response.Payload.response.Response.read_key_value.Result.error.code));
+        if (response.Payload.response.Response.read_key_value.Result.error.code ==
+            ActionsLink_Error_Code_ResourceUnavailable)
             return -1;
         else
             return -2;
     }
 
     *p_value = response.Payload.response.Response.read_key_value.Result.el.value;
-
+#endif // MYND_RPI_MODIFICATION
     return 0;
 }
-#endif
+#endif // ActionsLink_FromMcuRequest_read_key_value_tag
 
+#ifndef MYND_RPI_MODIFICATION
 static const char *get_error_desc(ActionsLink_Error_Code error_code)
 {
     switch (error_code)
@@ -1421,3 +1657,4 @@ static bool is_driver_ready(void)
 
     return true;
 }
+#endif // MYND_RPI_MODIFICATION

@@ -194,6 +194,37 @@ PRINT_SIZE_OF_TARGETS(${projectTarget})
 add_deploy_jlink(${projectTarget})
 
 ################################################
+###### Application target (RPI MOD) #######
+################################################
+set(projectTarget ${PROJECT_NAME}-rpi-mod)
+set(CMAKE_ENABLE_RPI_MOD ON)
+add_executable(${projectTarget} ${ALL_SOURCES})
+add_subdirectory(src ${projectTarget}_build)
+set(CMAKE_ENABLE_RPI_MOD OFF)
+target_link_libraries(${projectTarget} PRIVATE baseTarget)
+
+target_compile_definitions(${projectTarget} PRIVATE ${MYND_COMPILER_FLAGS} MYND_RPI_MODIFICATION)
+
+target_link_libraries(${projectTarget} PRIVATE
+    Logger
+    Logger::Config2
+    Logger::Format1
+)
+
+target_link_libraries(${projectTarget} PRIVATE
+    Actionslink
+    Actionslink::LogLevelInfo
+)
+
+teufel_cmsis_generate_default_linker_script(${projectTarget} F0 F072RB ${MYND_HEAP_SIZE} ${MYND_STACK_SIZE} 0x08000000 128K-4K 0x20000000 0x4000)
+
+GITVERSION_ENABLE(${projectTarget})
+ADD_HEX_TARGET(${projectTarget})
+PRINT_SIZE_OF_TARGETS(${projectTarget})
+
+add_deploy_jlink(${projectTarget})
+
+################################################
 ########## Update target - MYND ##########
 ################################################
 set(update-fw "${PROJECT_NAME}-update-firmware-mcu")
@@ -254,6 +285,38 @@ GITVERSION_ENABLE(${projectTarget})
 ADD_ELF_HEX_BIN_TARGETS(${projectTarget})
 PRINT_SIZE_OF_TARGETS(${projectTarget})
 
+################################################
+########## Update target - RPi Mod ##########
+################################################
+set(update-rpi-mod-fw "${PROJECT_NAME}-rpi-mod-update-firmware-mcu")
+set(fw-rpi-mod-offset "${PROJECT_NAME}-rpi-mod-offset")
+
+set(projectTarget ${fw-rpi-mod-offset})
+set(CMAKE_ENABLE_RPI_MOD ON)
+add_executable(${projectTarget} ${ALL_SOURCES})
+add_subdirectory(src ${projectTarget}_build)
+set(CMAKE_ENABLE_RPI_MOD OFF)
+target_link_libraries(${projectTarget} PRIVATE baseTarget)
+
+target_link_libraries(${projectTarget} PRIVATE
+    Actionslink
+    Actionslink::LogLevelInfo
+)
+
+target_link_libraries(${projectTarget} PRIVATE
+    Logger
+    Logger::Config2
+    Logger::Format1
+)
+
+target_compile_definitions(${projectTarget} PRIVATE BOOTLOADER MYND_RPI_MODIFICATION)
+
+teufel_cmsis_generate_default_linker_script(${projectTarget} F0 F072RB ${MYND_HEAP_SIZE} ${MYND_STACK_SIZE} 0x08005000 128K-20K-4K 0x200000BC 0x3f44)
+
+GITVERSION_ENABLE(${projectTarget})
+ADD_ELF_HEX_BIN_TARGETS(${projectTarget})
+PRINT_SIZE_OF_TARGETS(${projectTarget})
+
 add_custom_command(OUTPUT mynd-update-firmware-mcu.bin
     COMMAND python3 ${CMAKE_SOURCE_DIR}/support/scripts/prepare_update.py
     -p OA2302
@@ -275,42 +338,62 @@ add_custom_command(OUTPUT mynd-factory-update-firmware-mcu.bin
     COMMENT "Prepare factory update file"
     VERBATIM
 )
+    
+add_custom_command(OUTPUT mynd-rpi-mod-update-firmware-mcu.bin
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/support/scripts/prepare_update.py
+    -p OA2302
+    -k ${CMAKE_SOURCE_DIR}/support/keys/teufel_dev_private.pem
+    --no-encryption
+    --mcu=${PROJECT_BINARY_DIR}/mynd-rpi-mod-offset.bin
+    -o mynd-rpi-mod-update-firmware-mcu.bin
+    COMMENT "Prepare rpi mod update file"
+    VERBATIM
+)
 
 add_custom_target(mynd-update-firmware-mcu DEPENDS mynd-offset.bin mynd-update-firmware-mcu.bin)
 add_custom_target(mynd-factory-update-firmware-mcu DEPENDS mynd-factory-offset.bin mynd-factory-update-firmware-mcu.bin)
+add_custom_target(mynd-rpi-mod-update-firmware-mcu DEPENDS mynd-rpi-mod-offset.bin mynd-rpi-mod-update-firmware-mcu.bin)
 
 ################################################
 ######## Complete target - MYND ##########
 ################################################
-set(BOOTLOADER_VERSION "v2.1.0")
-set(BOOTLOADER_FILENAME "${PROJECT_NAME}-bootloader-${BOOTLOADER_VERSION}.hex")
+add_subdirectory(${CMAKE_SOURCE_DIR}/Projects/MyndBootloader ${CMAKE_BINARY_DIR}/Projects/MyndBootloader EXCLUDE_FROM_ALL)
+
+set(BOOTLOADER_FILENAME "${PROJECT_NAME}-bootloader.hex")
+set(BOOTLOADER_TARGET "mynd-bootloader.hex")
 
 replace_dashes_with_underscores(${PROJECT_NAME} _PROJECT_NAME)
 
 add_custom_command(OUTPUT ${PROJECT_NAME}-complete.hex
-    # TODO: add Windows support
     COMMAND hexmerge.py
-    ${CMAKE_SOURCE_DIR}/build/Projects/MyndBootloader/${PROJECT_NAME}-bootloader.hex:0x08000000:0x08005000
-#    ${CMAKE_BINARY_DIR}/Projects/MyndBootloader/${PROJECT_NAME}-bootloader.hex:0x08000000:0x08006800
+    ${CMAKE_SOURCE_DIR}/build/Projects/MyndBootloader/${BOOTLOADER_FILENAME}:0x08000000:0x08005000
     ${CMAKE_BINARY_DIR}/Projects/Mynd/${PROJECT_NAME}-offset.hex:0x08005000:0x08020000
     -o ${PROJECT_NAME}-complete.hex
-    DEPENDS ${PROJECT_NAME}-offset.hex ${BOOTLOADER_FILENAME}
+    DEPENDS ${PROJECT_NAME}-offset.hex ${BOOTLOADER_TARGET}
     COMMENT "Merge hex files: ${PROJECT_NAME}-bootloader.hex and ${PROJECT_NAME}-offset.hex into ${PROJECT_NAME}-complete.hex"
     VERBATIM
 )
 
 add_custom_command(OUTPUT ${PROJECT_NAME}-factory-complete.hex
-    # TODO: add Windows support
     COMMAND hexmerge.py
-    ${CMAKE_SOURCE_DIR}/build/Projects/MyndBootloader/${PROJECT_NAME}-bootloader.hex:0x08000000:0x08005000
-#    ${CMAKE_BINARY_DIR}/Projects/MyndBootloader/${PROJECT_NAME}-bootloader.hex:0x08000000:0x08006800
+    ${CMAKE_SOURCE_DIR}/build/Projects/MyndBootloader/${BOOTLOADER_FILENAME}:0x08000000:0x08005000
     ${CMAKE_BINARY_DIR}/Projects/Mynd/${PROJECT_NAME}-factory-offset.hex:0x08005000:0x08020000
     -o ${PROJECT_NAME}-factory-complete.hex
-    DEPENDS ${PROJECT_NAME}-factory-offset.hex ${BOOTLOADER_FILENAME}
+    DEPENDS ${PROJECT_NAME}-factory-offset.hex ${BOOTLOADER_TARGET}
     COMMENT "Merge hex files: ${PROJECT_NAME}-bootloader.hex and ${PROJECT_NAME}-factory-offset.hex into ${PROJECT_NAME}-factory-complete.hex"
     VERBATIM
 )
 
-add_custom_target(${BOOTLOADER_FILENAME} DEPENDS ${PROJECT_NAME}-bootloader.hex)
+add_custom_command(OUTPUT ${PROJECT_NAME}-rpi-mod-complete.hex
+    COMMAND hexmerge.py
+    ${CMAKE_SOURCE_DIR}/build/Projects/MyndBootloader/${BOOTLOADER_FILENAME}:0x08000000:0x08005000
+    ${CMAKE_BINARY_DIR}/Projects/Mynd/${PROJECT_NAME}-rpi-mod-offset.hex:0x08005000:0x08020000
+    -o ${PROJECT_NAME}-rpi-mod-complete.hex
+    DEPENDS ${PROJECT_NAME}-rpi-mod-offset.hex ${BOOTLOADER_TARGET}
+    COMMENT "Merge hex files: ${PROJECT_NAME}-bootloader.hex and ${PROJECT_NAME}-rpi-mod-offset.hex into ${PROJECT_NAME}-rpi-mod-complete-firmware-mcu.hex"
+    VERBATIM
+)
+
 add_custom_target(${PROJECT_NAME}-complete DEPENDS ${PROJECT_NAME}-complete.hex)
 add_custom_target(${PROJECT_NAME}-factory-complete DEPENDS ${PROJECT_NAME}-factory-complete.hex)
+add_custom_target(${PROJECT_NAME}-rpi-mod-complete DEPENDS ${PROJECT_NAME}-rpi-mod-complete.hex)
