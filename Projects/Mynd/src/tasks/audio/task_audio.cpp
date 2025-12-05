@@ -25,6 +25,9 @@
 #include "external/teufel/libs/GenericThread/GenericThread++.h"
 #include "task_audio.h"
 #include "task_bluetooth.h"
+#ifdef MYND_RPI_MODIFICATION
+#include "task_rpi.h"
+#endif
 #include "task_system.h"
 #include "task_priorities.h"
 #include "tests.h"
@@ -86,19 +89,21 @@ static StaticQueue_t queue_static;
 static const size_t  queue_item_size = sizeof(GenericThread::QueueMessage<AudioMessage>);
 static uint8_t       queue_static_buffer[QUEUE_SIZE * queue_item_size];
 
-// board_link_power_supply_is_ac_ok() briefly loses connection in certain cases, so check if it is "not ok" for > than
-// 2000 ms before powering off
+// board_link_power_supply_is_ac_ok() briefly loses connection in certain cases, so check if it is "not ok" for >
+// than 2000 ms before powering off
 //
 // Testing has shown that if the unit is in a completely off state and the charger is then connected,
-// board_link_power_supply_is_ac_ok() consistantly reports false for approx. 1800 ms. It then recovers and reports "ok".
-// Without this check, this event causes the unit to repeatedly perform a power-cycle reset into the pseudo off-state.
-// This causes the off-state charge voltage to repeatedly oscillate btwn 0V-5V-19V.
+// board_link_power_supply_is_ac_ok() consistantly reports false for approx. 1800 ms. It then recovers and reports
+// "ok". Without this check, this event causes the unit to repeatedly perform a power-cycle reset into the pseudo
+// off-state. This causes the off-state charge voltage to repeatedly oscillate btwn 0V-5V-19V.
 static auto pwr_ac_debouncer = Debouncer<bool, 2000>{true, get_systick, board_get_ms_since};
 
 // UX has requested to reduce the incr/decr speed when holding either of the volume btns, adjust accordingly
 // static auto volume_debouncer = Debouncer<bool, 200>{false, get_systick, board_get_ms_since};
 
 static void read_io_expander_inputs();
+static void configure_eco_mode(bool enable);
+static void setup_amps();
 static void disable_amps();
 
 static Tus::Task                                           ot_id                      = Tus::Task::Audio;
@@ -119,6 +124,7 @@ static struct
     bool ignore_hold_until_stop_pairing           = false;
     bool bypass_mode                              = false;
     bool plug_connected                           = false;
+    bool pending_amp_setup                        = false;
 } s_audio;
 
 static const board_link_usb_pd_controller_callbacks_t usb_callbacks = {
@@ -472,8 +478,8 @@ TS_KEY_VALUE_CONST_MAP(EventHandlerMapper, uint32_t, button_event_handler_fn_t,
         {
             if (isProperty(Ux::System::PowerState::Off))
                 Teufel::Task::System::postMessage(ot_id, Tus::SetPowerState { Tus::PowerState::On, Tus::PowerState::Off });
-            log_err("start prod test!!!!");
 #ifdef INCLUDE_PRODUCTION_TESTS
+            log_err("start prod test!!!!");
             // When test mode activated via POWER+BT, we need to pass UART lines to the USB port.
             board_link_usb_switch_to_uart_debug();
             set_power_with_prompt(true);
@@ -538,6 +544,14 @@ static const button_handler_config_t button_handler_config = {
             auto mapped_event = Teufel::Core::mapValue(EventMapper, event);
             if (mapped_event.has_value())
             {
+                // Send button event to RPi if enabled
+#ifdef MYND_RPI_MODIFICATION
+                Teufel::Task::RpiLink::postMessage(ot_id,
+                                                  Teufel::Task::RpiLink::ButtonEvent{button_state,
+                                                                                     static_cast<uint8_t>(
+                                                                                         mapped_event.value())});
+#endif // MYND_RPI_MODIFICATION
+                                                                                         
                 auto handler = Teufel::Core::mapValue(EventHandlerMapper, button_state);
 #if defined(INCLUDE_PRODUCTION_TESTS)
                 if (is_key_test_activated())
@@ -605,13 +619,27 @@ static const GenericThread::Config<AudioMessage> threadConfig = {
 
                 // Mute and unmute amps to prevent pop noise.
                 // The delay amount of 200 ms is derived from testing
-                board_link_amps_mute(true);
-                vTaskDelay(pdMS_TO_TICKS(200));
-                board_link_amps_mute(false);
+                board_link_amps_toggle_mute();
 
                 Teufel::Task::Bluetooth::postMessage(ot_id, Teufel::Ux::Bluetooth::NotifyAuxConnectionChange {s_is_aux_jack_connected});
             }
         }
+
+#ifdef MYND_RPI_MODIFICATION
+        if (isProperty(Tus::PowerState::On) && s_audio.pending_amp_setup)
+        {
+            if (board_link_amps_set_hi_z() == 0)
+            {
+                vTaskDelay(pdMS_TO_TICKS(5));
+                if (board_link_amps_fs_ready())
+                {
+                    log_info("I2S clocks detected, performing deferred amp setup");
+                    s_audio.pending_amp_setup = false;
+                    setup_amps();
+                }
+            }
+        }
+#endif // MYND_RPI_MODIFICATION
 
 #ifdef BOARD_CONFIG_HAS_NO_I2C_MODE
         if (not s_audio.no_i2c_mode)
@@ -760,6 +788,8 @@ static const GenericThread::Config<AudioMessage> threadConfig = {
                             disable_amps();
 
                             s_audio.bypass_mode = false;
+                            s_audio.pending_amp_setup = false;
+
                             break;
                         }
 
@@ -805,16 +835,20 @@ static const GenericThread::Config<AudioMessage> threadConfig = {
                         case Tus::PowerState::On: {
                             // The I2S clocks should be stable by now (provided by BT module, synchronized by the system task)
                             // We should now be able to safely start configuring the amplifiers
-                            board_link_amps_mode_t amp_mode = s_audio.bypass_mode ? AMP_MODE_BYPASS : AMP_MODE_NORMAL;
-                            board_link_amps_setup_woofer(amp_mode);
-                            board_link_amps_setup_tweeter(amp_mode);
-
-                            if (isProperty(Tua::EcoMode{true}))
+#ifdef MYND_RPI_MODIFICATION
+                            if (board_link_amps_fs_ready())
                             {
-#ifndef INCLUDE_PRODUCTION_TESTS
-                                board_link_amps_enable_eco_mode(true);
-#endif
+                                log_info("I2S clocks detected, performing amp setup");
+                                setup_amps();
                             }
+                            else
+                            {
+                                log_info("I2S clocks not yet detected, deferring amp setup");
+                                s_audio.pending_amp_setup = true;
+                            }
+#else
+                            setup_amps();
+#endif // MYND_RPI_MODIFICATION
 
 #ifdef BOARD_CONFIG_HAS_NO_I2C_MODE
                             if (s_audio.no_i2c_mode)
@@ -891,9 +925,7 @@ static const GenericThread::Config<AudioMessage> threadConfig = {
                 [](const Tua::EcoMode &p)
                 {
                     setProperty(p);
-#ifndef INCLUDE_PRODUCTION_TESTS
-                    board_link_amps_enable_eco_mode(p.value);
-#endif
+                    configure_eco_mode(p.value);
                     Leds::set_source_pattern(p.value ? Leds::SourcePattern::EcoModeOn : Leds::SourcePattern::EcoModeOff);
                     Teufel::Task::Bluetooth::postMessage(ot_id, p);
                     Teufel::Task::Bluetooth::postMessage(ot_id, Tua::RequestSoundIcon {ACTIONSLINK_SOUND_ICON_POSITIVE_FEEDBACK,
@@ -996,6 +1028,28 @@ static void read_io_expander_inputs() {
     }
 
     button_handler_process(s_button_handler, s_buttons_state);
+}
+
+static void configure_eco_mode(bool enable)
+{
+#ifndef INCLUDE_PRODUCTION_TESTS
+    board_link_amps_enable_eco_mode(enable);
+
+    auto bass   = enable ? 0 : getProperty<Tua::BassLevel>().value;
+    auto treble = enable ? 0 : getProperty<Tua::TrebleLevel>().value;
+
+    board_link_amps_set_bass_level(bass);
+    board_link_amps_set_treble_level(treble);
+#endif
+}
+
+static void setup_amps()
+{
+    board_link_amps_mode_t amp_mode = s_audio.bypass_mode ? AMP_MODE_BYPASS : AMP_MODE_NORMAL;
+    board_link_amps_setup_woofer(amp_mode);
+    board_link_amps_setup_tweeter(amp_mode);
+
+    configure_eco_mode(isProperty(Tua::EcoMode{true}));
 }
 
 static void disable_amps()

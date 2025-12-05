@@ -47,7 +47,6 @@ namespace Teufel::Task::Bluetooth
 namespace Tua = Teufel::Ux::Audio;
 namespace Tub = Teufel::Ux::Bluetooth;
 namespace Tus = Teufel::Ux::System;
-namespace Tua = Teufel::Ux::Audio;
 
 static Teufel::Ux::System::Task                                ot_id        = Teufel::Ux::System::Task::Bluetooth;
 static Teufel::GenericThread::GenericThread<BluetoothMessage> *task_handler = nullptr;
@@ -607,9 +606,7 @@ static const actionslink_event_handlers_t actionslink_event_handlers = {
             // The delay amount of 200 ms is derived from testing
             if (!is_usb_connected && isProperty(Tub::Status::UsbConnected))
             {
-                board_link_amps_mute(true);
-                vTaskDelay(pdMS_TO_TICKS(200));
-                board_link_amps_mute(false);
+                board_link_amps_toggle_mute();
             }
 
             s_bluetooth.is_usb_source_available = is_usb_connected;

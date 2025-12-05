@@ -7,6 +7,9 @@
 #include "ux/audio/audio.h"
 #include "ux/bluetooth/bluetooth.h"
 #include "ux/input/input.h"
+#ifdef MYND_RPI_MODIFICATION
+#include "ux/rpi/rpi.h"
+#endif // MYND_RPI_MODIFICATION
 
 #include "task_audio.h"
 

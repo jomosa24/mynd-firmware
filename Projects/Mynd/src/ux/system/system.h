@@ -58,6 +58,7 @@ enum class Task : uint8_t
     Audio,
     Ui,
     Bluetooth,
+    RpiLink,
 };
 
 inline auto getDesc(const Task &value)
@@ -72,6 +73,8 @@ inline auto getDesc(const Task &value)
             return "Ui";
         case Task::Bluetooth:
             return "Bluetooth";
+        case Task::RpiLink:
+            return "RpiLink";
         default:
             return "Unknown";
     }
