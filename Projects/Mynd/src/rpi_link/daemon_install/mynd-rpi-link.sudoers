@@ -1,0 +1,19 @@
+# Sudoers configuration for Mynd RPi Link Daemon
+# 
+# SECURITY NOTE: This allows the specified user to run poweroff without a password.
+# Only grant this permission if you trust the daemon and the MCU communication.
+# 
+# To install:
+# 1. Copy this file to /etc/sudoers.d/mynd-rpi-link
+# 2. Set permissions: sudo chmod 0440 /etc/sudoers.d/mynd-rpi-link
+# 3. Verify: sudo visudo -c
+#
+# To customize the user, replace 'pi' with your desired username below 
+# and update the User, Group fields within `mynd-rpi-link.service` before installation.
+
+# Allow user 'pi' to run poweroff without password
+pi ALL=(ALL) NOPASSWD: /sbin/poweroff
+
+# Optional: Also allow reboot (uncomment if needed)
+# pi ALL=(ALL) NOPASSWD: /sbin/reboot
+
