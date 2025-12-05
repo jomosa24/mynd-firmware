@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "tas5805m.h"
+#include "tas5825p.h"
 
 typedef enum
 {
@@ -24,6 +26,8 @@ extern "C"
     void board_link_amps_init(void);
 
     void board_link_amps_enable(bool enable);
+
+    int board_link_amps_set_hi_z(void);
 
     int board_link_amps_setup_woofer(board_link_amps_mode_t mode);
 
@@ -95,8 +99,14 @@ extern "C"
 
     bool board_link_amps_is_muted(void);
 
+    void board_link_amps_toggle_mute(void);
+
     bool board_link_amps_woofer_fault_detected(void);
     void board_link_amps_woofer_fault_recover(void);
+
+    int board_link_amps_read_fs_mon(tas5825p_fs_t *p_woofer_fs, tas5805m_fs_t *p_tweeter_fs);
+
+    bool board_link_amps_fs_ready(void);
 
 #if defined(__cplusplus)
 }

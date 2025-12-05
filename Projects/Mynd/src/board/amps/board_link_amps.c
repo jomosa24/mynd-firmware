@@ -94,6 +94,25 @@ void board_link_amps_enable(bool enable)
     log_info("Amps power %s", enable ? "enabled" : "disabled");
 }
 
+int board_link_amps_set_hi_z(void)
+{
+    int result = 0;
+
+    if (tas5825p_set_state(s_amps.tas5825p, TAS5825P_DEVICE_STATE_HI_Z) != 0)
+    {
+        log_error("Failed to set woofer amp to Hi-Z state");
+        result = -1;
+    }
+
+    if (tas5805m_set_state(s_amps.tas5805m, TAS5805M_DEVICE_STATE_HI_Z) != 0)
+    {
+        log_error("Failed to set tweeter amp to Hi-Z state");
+        result = -1;
+    }
+
+    return result;
+}
+
 int board_link_amps_setup_woofer(board_link_amps_mode_t mode)
 {
     int result = 0;
@@ -460,6 +479,15 @@ bool board_link_amps_is_muted(void)
     return s_amps.is_muted;
 }
 
+void board_link_amps_toggle_mute(void)
+{
+    // Mute and unmute amps to prevent pop noise.
+    // The delay amount of 200 ms is derived from testing
+    board_link_amps_mute(true);
+    vTaskDelay(pdMS_TO_TICKS(200));
+    board_link_amps_mute(false);
+}
+
 bool board_link_amps_woofer_fault_detected(void)
 {
     return HAL_GPIO_ReadPin(TWEETER_FAULT_INT_GPIO_PORT, TWEETER_FAULT_INT_GPIO_PIN) == GPIO_PIN_SET;
@@ -471,6 +499,45 @@ void board_link_amps_woofer_fault_recover(void)
     {
         log_error("Failed to recover from woofer fault");
     }
+}
+
+int board_link_amps_read_fs_mon(tas5825p_fs_t *p_woofer_fs, tas5805m_fs_t *p_tweeter_fs)
+{
+    if (p_woofer_fs == NULL || p_tweeter_fs == NULL)
+    {
+        log_error("Null pointer passed to board_link_amps_read_fs_mon");
+        return -1;
+    }
+
+    tas5825p_fs_t fs = TAS5825P_FS_ERROR;
+    if (tas5825p_read_fs_mon(s_amps.tas5825p, &fs) != 0)
+    {
+        log_error("Failed to read woofer FS monitor");
+        return -1;
+    }
+    *p_woofer_fs = fs;
+
+    tas5805m_fs_t tweeter_fs = TAS5805M_FS_ERROR;
+    if (tas5805m_read_fs_mon(s_amps.tas5805m, &tweeter_fs) != 0)
+    {
+        log_error("Failed to read tweeter FS monitor");
+        return -1;
+    }
+    *p_tweeter_fs = tweeter_fs;
+
+    return 0;
+}
+
+bool board_link_amps_fs_ready(void)
+{
+    tas5825p_fs_t woofer_fs = TAS5825P_FS_ERROR;
+    tas5805m_fs_t tweeter_fs = TAS5805M_FS_ERROR;
+    if (board_link_amps_read_fs_mon(&woofer_fs, &tweeter_fs) != 0)
+    {
+        return false;
+    }
+    log_debug("Woofer FS: %u, Tweeter FS: %u", woofer_fs, tweeter_fs);
+    return (woofer_fs != TAS5825P_FS_ERROR) && (tweeter_fs != TAS5805M_FS_ERROR);
 }
 
 static void thread_sleep_ms(uint32_t ms)
