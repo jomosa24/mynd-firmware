@@ -63,20 +63,20 @@ fi
 
 # Install missing packages if any
 if [ -n "$PACKAGES_TO_INSTALL" ]; then
-    if command -v apt-get &> /dev/null; then
+    if command -v apt &> /dev/null; then
         if [ "$NEEDS_UPDATE" = true ]; then
             echo "Updating package list..."
-            apt-get update -qq
+            sudo apt update -qq
         fi
         echo "Installing Python packages..."
-        apt-get install -y "$PACKAGES_TO_INSTALL" || {
+        sudo apt install -y $PACKAGES_TO_INSTALL || {
             echo -e "${RED}ERROR: Failed to install Python packages: $PACKAGES_TO_INSTALL${NC}"
             echo -e "${YELLOW}You may need to install them manually using pip3 with --break-system-packages${NC}"
             exit 1
         }
         echo -e "${GREEN}✓${NC} Installed Python dependencies"
     else
-        echo -e "${RED}ERROR: apt-get not found. Please install packages manually: $PACKAGES_TO_INSTALL${NC}"
+        echo -e "${RED}ERROR: apt not found. Please install packages manually: $PACKAGES_TO_INSTALL${NC}"
         exit 1
     fi
 else
